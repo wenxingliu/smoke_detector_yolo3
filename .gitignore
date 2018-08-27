@@ -102,3 +102,15 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# data files
+input_data/*
+output_data/*
+.DS_Store
+.idea/misc.xml
+.idea/modules.xml
+.idea/smoke_detector_yolo3.iml
+.DS_Store
+.idea/vcs.xml
+.idea/workspace.xml
+.DS_Store
