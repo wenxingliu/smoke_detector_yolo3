@@ -23,6 +23,7 @@ class YOLO(object):
         "model_path": 'model_data/yolo.h5',
         "anchors_path": 'model_data/yolo_anchors.txt',
         "classes_path": 'model_data/coco_classes.txt',
+        "vehicle_classes_path": 'model_data/vehicle_classes.txt',
         "score" : 0.3,
         "iou" : 0.45,
         "model_image_size" : (416, 416),
@@ -40,6 +41,7 @@ class YOLO(object):
         self.__dict__.update(self._defaults) # set up default values
         self.__dict__.update(kwargs) # and update with user overrides
         self.class_names = self._get_class()
+        self.vehicle_classes_names = self._get_vehicle_class()
         self.anchors = self._get_anchors()
         self.sess = K.get_session()
         self.boxes, self.scores, self.classes = self.generate()
@@ -50,6 +52,13 @@ class YOLO(object):
             class_names = f.readlines()
         class_names = [c.strip() for c in class_names]
         return class_names
+
+    def _get_vehicle_class(self):
+        vehicle_classes_path = os.path.expanduser(self.vehicle_classes_path)
+        with open(vehicle_classes_path) as f:
+            vehicle_classes_names = f.readlines()
+        vehicle_classes_names = [c.strip() for c in vehicle_classes_names]
+        return vehicle_classes_names
 
     def _get_anchors(self):
         anchors_path = os.path.expanduser(self.anchors_path)
@@ -99,7 +108,7 @@ class YOLO(object):
                 score_threshold=self.score, iou_threshold=self.iou)
         return boxes, scores, classes
 
-    def detect_image(self, image):
+    def detect_image(self, image, vehicles_only=True, score_threshold=0.5):
         start = timer()
 
         if self.model_image_size != (None, None):
@@ -130,10 +139,18 @@ class YOLO(object):
                     size=np.floor(3e-2 * image.size[1] + 0.5).astype('int32'))
         thickness = (image.size[0] + image.size[1]) // 300
 
+        # TODO: find the biggest box on the right side
+
         for i, c in reversed(list(enumerate(out_classes))):
             predicted_class = self.class_names[c]
             box = out_boxes[i]
             score = out_scores[i]
+
+            if score <= score_threshold:
+                continue
+
+            if vehicles_only and (predicted_class not in self.vehicle_classes_names):
+                continue
 
             label = '{} {:.2f}'.format(predicted_class, score)
             draw = ImageDraw.Draw(image)

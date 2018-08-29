@@ -106,11 +106,9 @@ venv.bak/
 # data files
 input_data/*
 output_data/*
+model_data/yolov3.weights
+model_data/yolo.h5
+
 .DS_Store
-.idea/misc.xml
-.idea/modules.xml
-.idea/smoke_detector_yolo3.iml
-.DS_Store
-.idea/vcs.xml
-.idea/workspace.xml
-.DS_Store
+.idea/*
+model_data/yolo.h5
