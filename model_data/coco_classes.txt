@@ -56,7 +56,7 @@ donut
 cake
 chair
 sofa
-pottedplant
+pottedplant_truck
 bed
 diningtable
 toilet
