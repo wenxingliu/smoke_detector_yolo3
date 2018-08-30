@@ -13,6 +13,7 @@ from keras.layers import Input
 from PIL import ImageFont, ImageDraw
 
 from models.yolo3_model import yolo_eval, yolo_body, tiny_yolo_body
+from yolo_detect.utils import sort_boxes_by_confidence_and_size
 from models.utils import letterbox_image
 import os
 from keras.utils import multi_gpu_model
@@ -100,19 +101,19 @@ class YOLO(object):
 
         # Generate output tensor targets for filtered bounding boxes.
         self.input_image_shape = K.placeholder(shape=(2, ))
-        if self.gpu_num>=2:
+        if self.gpu_num >= 2:
             self.yolo_model = multi_gpu_model(self.yolo_model, gpus=self.gpu_num)
         boxes, scores, classes = yolo_eval(self.yolo_model.output, self.anchors,
                 len(self.class_names), self.input_image_shape,
                 score_threshold=self.score, iou_threshold=self.iou)
         return boxes, scores, classes
 
-    def detect_image(self, image, vehicles_only=True, score_threshold=0.5):
+    def detect_image(self, image, vehicles_only=True, score_threshold=0.5, top_N=2):
         start = timer()
 
         if self.model_image_size != (None, None):
-            assert self.model_image_size[0]%32 == 0, 'Multiples of 32 required'
-            assert self.model_image_size[1]%32 == 0, 'Multiples of 32 required'
+            assert self.model_image_size[0] % 32 == 0, 'Multiples of 32 required'
+            assert self.model_image_size[1] % 32 == 0, 'Multiples of 32 required'
             boxed_image = letterbox_image(image, tuple(reversed(self.model_image_size)))
         else:
             new_image_size = (image.width - (image.width % 32),
@@ -134,22 +135,21 @@ class YOLO(object):
 
         print('Found {} boxes for {}'.format(len(out_boxes), 'img'))
 
+        sorted_indices = sort_boxes_by_confidence_and_size(out_boxes=out_boxes, out_scores=out_scores,
+                                                           score_threshold=score_threshold)
+
+        selected_indices = np.array([i for i in sorted_indices
+                                     if self.class_names[out_classes[i]] in self.vehicle_classes_names])[:top_N]
+
         font = ImageFont.truetype(font='font/FiraMono-Medium.otf',
                     size=np.floor(3e-2 * image.size[1] + 0.5).astype('int32'))
         thickness = (image.size[0] + image.size[1]) // 300
 
-        # TODO: find the biggest box on the right side
-
-        for i, c in reversed(list(enumerate(out_classes))):
+        for i in selected_indices:
+            c = out_classes[i]
             predicted_class = self.class_names[c]
             box = out_boxes[i]
             score = out_scores[i]
-
-            if score <= score_threshold:
-                continue
-
-            if vehicles_only and (predicted_class not in self.vehicle_classes_names):
-                continue
 
             label = '{} {:.2f}'.format(predicted_class, score)
             draw = ImageDraw.Draw(image)
