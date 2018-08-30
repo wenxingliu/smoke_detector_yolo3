@@ -13,7 +13,7 @@ from keras.layers import Input
 from PIL import ImageFont, ImageDraw
 
 from models.yolo3_model import yolo_eval, yolo_body, tiny_yolo_body
-from yolo_detect.utils import sort_boxes_by_confidence_and_size
+from yolo_detect.utils import filter_small_objects, discard_overlapping_boxes
 from models.utils import letterbox_image
 import os
 from keras.utils import multi_gpu_model
@@ -24,10 +24,10 @@ class YOLO(object):
         "anchors_path": 'model_data/yolo_anchors.txt',
         "classes_path": 'model_data/coco_classes.txt',
         "vehicle_classes_path": 'model_data/vehicle_classes.txt',
-        "score" : 0.3,
-        "iou" : 0.45,
-        "model_image_size" : (416, 416),
-        "gpu_num" : 1,
+        "score": 0.5,
+        "iou": 0.5,
+        "model_image_size": (416, 416),
+        "gpu_num": 1,
     }
 
     @classmethod
@@ -108,7 +108,7 @@ class YOLO(object):
                 score_threshold=self.score, iou_threshold=self.iou)
         return boxes, scores, classes
 
-    def detect_image(self, image, vehicles_only=True, score_threshold=0.5, top_N=2):
+    def detect_image(self, image):
         start = timer()
 
         if self.model_image_size != (None, None):
@@ -135,11 +135,10 @@ class YOLO(object):
 
         print('Found {} boxes for {}'.format(len(out_boxes), 'img'))
 
-        sorted_indices = sort_boxes_by_confidence_and_size(out_boxes=out_boxes, out_scores=out_scores,
-                                                           score_threshold=score_threshold)
 
-        selected_indices = np.array([i for i in sorted_indices
-                                     if self.class_names[out_classes[i]] in self.vehicle_classes_names])[:top_N]
+        filtered_indices = filter_small_objects(boxes=out_boxes, image_size=boxed_image.size)
+        selected_indices = np.array([i for i in filtered_indices
+                                     if self.class_names[out_classes[i]] in self.vehicle_classes_names])
 
         font = ImageFont.truetype(font='font/FiraMono-Medium.otf',
                     size=np.floor(3e-2 * image.size[1] + 0.5).astype('int32'))
