@@ -1,7 +1,14 @@
 import argparse
+import os
 from yolo_detect.yolo import YOLO
 from yolo_detect.detect_video import detect_video
 from PIL import Image
+
+current_path = os.path.dirname(os.path.abspath(__file__))
+path_suffix = '/apps'
+if current_path.endswith(path_suffix):
+    parent_path = current_path.rsplit(path_suffix, 1)[0]
+    os.chdir(parent_path)
 
 def detect_img(yolo):
     while True:

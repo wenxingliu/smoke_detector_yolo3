@@ -109,6 +109,8 @@ output_data/*
 model_data/yolov3.weights
 model_data/yolo.h5
 
+notebooks/*
+
 .DS_Store
 .idea/*
 model_data/yolo.h5
