@@ -13,7 +13,7 @@ from keras.layers import Input
 from PIL import ImageFont, ImageDraw
 
 from models.yolo3_model import yolo_eval, yolo_body, tiny_yolo_body
-from yolo_detect.utils import filter_small_objects, discard_overlapping_boxes
+from yolo_detect.utils import discard_overlapping_boxes
 from models.utils import letterbox_image
 import os
 from keras.utils import multi_gpu_model
@@ -136,9 +136,8 @@ class YOLO(object):
         print('Found {} boxes for {}'.format(len(out_boxes), 'img'))
 
 
-        filtered_indices = filter_small_objects(boxes=out_boxes, image_size=boxed_image.size)
-        selected_indices = np.array([i for i in filtered_indices
-                                     if self.class_names[out_classes[i]] in self.vehicle_classes_names])
+        selected_indices = np.array([i for i, c in enumerate(out_classes)
+                                     if self.class_names[c] in self.vehicle_classes_names])
 
         font = ImageFont.truetype(font='font/FiraMono-Medium.otf',
                     size=np.floor(3e-2 * image.size[1] + 0.5).astype('int32'))
@@ -159,7 +158,16 @@ class YOLO(object):
             left = max(0, np.floor(left + 0.5).astype('int32'))
             bottom = min(image.size[1], np.floor(bottom + 0.5).astype('int32'))
             right = min(image.size[0], np.floor(right + 0.5).astype('int32'))
-            print(label, (left, top), (right, bottom))
+
+            center_coords = [(right + left)/2, (top + bottom)/2]
+            if (center_coords[1] < image.size[1]/2) | (center_coords[1] > 3*image.size[1]/4):
+                print('box not in the center, discard')
+                print(label, (left, top), (right, bottom))
+                continue
+            if center_coords[0] < image.size[0]/4:
+                print('box not on the right side, discard')
+                print(label, (left, top), (right, bottom))
+                continue
 
             if top - label_size[1] >= 0:
                 text_origin = np.array([left, top - label_size[1]])
