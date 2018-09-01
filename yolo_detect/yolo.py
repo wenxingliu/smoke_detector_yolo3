@@ -13,7 +13,7 @@ from keras.layers import Input
 from PIL import ImageFont, ImageDraw
 
 from models.yolo3_model import yolo_eval, yolo_body, tiny_yolo_body
-from yolo_detect.utils import sort_boxes_by_confidence_and_size
+from yolo_detect.utils import discard_overlapping_boxes
 from models.utils import letterbox_image
 import os
 from keras.utils import multi_gpu_model
@@ -24,10 +24,10 @@ class YOLO(object):
         "anchors_path": 'model_data/yolo_anchors.txt',
         "classes_path": 'model_data/coco_classes.txt',
         "vehicle_classes_path": 'model_data/vehicle_classes.txt',
-        "score" : 0.3,
-        "iou" : 0.45,
-        "model_image_size" : (416, 416),
-        "gpu_num" : 1,
+        "score": 0.5,
+        "iou": 0.5,
+        "model_image_size": (416, 416),
+        "gpu_num": 1,
     }
 
     @classmethod
@@ -108,7 +108,7 @@ class YOLO(object):
                 score_threshold=self.score, iou_threshold=self.iou)
         return boxes, scores, classes
 
-    def detect_image(self, image, vehicles_only=True, score_threshold=0.5, top_N=2):
+    def detect_image(self, image):
         start = timer()
 
         if self.model_image_size != (None, None):
@@ -135,11 +135,9 @@ class YOLO(object):
 
         print('Found {} boxes for {}'.format(len(out_boxes), 'img'))
 
-        sorted_indices = sort_boxes_by_confidence_and_size(out_boxes=out_boxes, out_scores=out_scores,
-                                                           score_threshold=score_threshold)
 
-        selected_indices = np.array([i for i in sorted_indices
-                                     if self.class_names[out_classes[i]] in self.vehicle_classes_names])[:top_N]
+        selected_indices = np.array([i for i, c in enumerate(out_classes)
+                                     if self.class_names[c] in self.vehicle_classes_names])
 
         font = ImageFont.truetype(font='font/FiraMono-Medium.otf',
                     size=np.floor(3e-2 * image.size[1] + 0.5).astype('int32'))
@@ -160,7 +158,16 @@ class YOLO(object):
             left = max(0, np.floor(left + 0.5).astype('int32'))
             bottom = min(image.size[1], np.floor(bottom + 0.5).astype('int32'))
             right = min(image.size[0], np.floor(right + 0.5).astype('int32'))
-            print(label, (left, top), (right, bottom))
+
+            center_coords = [(right + left)/2, (top + bottom)/2]
+            if (center_coords[1] < image.size[1]/2) | (center_coords[1] > 3*image.size[1]/4):
+                print('box not in the center, discard')
+                print(label, (left, top), (right, bottom))
+                continue
+            if center_coords[0] < image.size[0]/4:
+                print('box not on the right side, discard')
+                print(label, (left, top), (right, bottom))
+                continue
 
             if top - label_size[1] >= 0:
                 text_origin = np.array([left, top - label_size[1]])
