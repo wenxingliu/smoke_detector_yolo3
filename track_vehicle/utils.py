@@ -47,9 +47,13 @@ def track_bboxes_between_two_adjacent_frames(bboxes_0, bboxes_1,
         mapped_index = closest_bbox_indices[i]
         center_1 = box_centerpoints_1[mapped_index]
 
-        if not pair_should_be_filtered_out(center_0=center_0, center_1=center_1, distance_threshold=distance_threshold):
-            paired_bboxes[tracked_boxes, 0,] = filtered_bboxes_0[i]
-            paired_bboxes[tracked_boxes, 1,] = bboxes_1[mapped_index]
+        bbox_0 = filtered_bboxes_0[i]
+        bbox_1 = bboxes_1[mapped_index]
+
+        if (not pair_should_be_filtered_out(center_0=center_0, center_1=center_1, distance_threshold=distance_threshold)
+                and not paired_boxes_iou_too_small(bbox_0, bbox_1)):
+            paired_bboxes[tracked_boxes, 0,] = bbox_0
+            paired_bboxes[tracked_boxes, 1,] = bbox_1
             tracked_boxes += 1
 
     return paired_bboxes[:tracked_boxes]
@@ -86,7 +90,11 @@ def pair_should_be_filtered_out(center_0, center_1, distance_threshold, tol=0.01
     distance = euclidean(center_0, center_1)
     if distance > distance_threshold:
         return True
-    # TODO: add crieria IOU too small
+    return False
+
+
+# TODO: add crieria IOU too small
+def paired_boxes_iou_too_small(bbox_0, bbox_1):
     return False
 
 
