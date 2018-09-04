@@ -2,9 +2,8 @@ import numpy as np
 from PIL import Image
 
 
-def detect_image(yolo, input_img_path, output_img_path):
+def detect_image(yolo, input_img_path, output_img_path, exec_loop=False):
     continue_loop = True
-
     while continue_loop:
         try:
             image = Image.open(input_img_path)
@@ -17,9 +16,11 @@ def detect_image(yolo, input_img_path, output_img_path):
             import cv2
             cv2.imwrite(output_img_path, np.array(r_image, dtype='float32'))
 
-        input_str = input("Continue? (yes/[no])")
-
-        if input_str.lower() != 'yes':
+        if exec_loop:
+            input_str = input("Continue? (yes/[no])")
+            if input_str.lower() != 'yes':
+                continue_loop = False
+        else:
             continue_loop = False
 
     yolo.close_session()
