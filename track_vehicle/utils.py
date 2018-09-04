@@ -1,6 +1,8 @@
 import numpy as np
 from scipy.spatial.distance import cdist, euclidean
 
+from PIL import ImageFont, ImageDraw
+
 __author__ = 'sliu'
 
 
@@ -84,6 +86,7 @@ def pair_should_be_filtered_out(center_0, center_1, distance_threshold, tol=0.01
     distance = euclidean(center_0, center_1)
     if distance > distance_threshold:
         return True
+    # TODO: add crieria IOU too small
     return False
 
 
@@ -92,6 +95,25 @@ def filter_out_smaller_bboxes(bboxes, top_N=2):
     big_boxes_index = np.argsort(box_sizes)[::-1][:top_N]
     filtered_bboxes = bboxes[big_boxes_index]
     return filtered_bboxes
+
+
+def plot_tracking_target(target_bboxes, images_dict, colors, every_n_frames=10):
+    color_index = np.random.randint(0, len(colors))
+
+    for i, box in target_bboxes.items():
+        if i % every_n_frames != 0:
+            continue
+
+        selected_img = images_dict[i]
+        thickness = (selected_img.size[0] + selected_img.size[1]) // 300
+
+        draw = ImageDraw.Draw(selected_img)
+        top, left, bottom, right = box
+
+        for l in range(thickness):
+            draw.rectangle([left + l, top + l, right - l, bottom - l], outline=colors[color_index])
+        del draw
+        selected_img.show()
 
 
 def track_biggest_bbox_in_first_image_for_n_frames(paired_bboxes_list, start_index=0, num_frames=25):
