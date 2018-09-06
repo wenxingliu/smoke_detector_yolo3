@@ -8,7 +8,7 @@ if current_path.endswith(path_suffix):
 from yolo_detect.yolo import YOLO
 from yolo_detect.detect_video import detect_video
 
-print(os.getcwd())
+__author__ = 'sliu'
 
 if __name__ == '__main__':
     video_file_name = '4云景ch0_CHANNEL0_20171011_15_45_40'

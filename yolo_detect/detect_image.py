@@ -2,6 +2,9 @@ import numpy as np
 from PIL import Image
 
 
+__author__ = 'sliu'
+
+
 def detect_image(yolo, input_img_path, output_img_path, exec_loop=False):
     continue_loop = True
     while continue_loop:

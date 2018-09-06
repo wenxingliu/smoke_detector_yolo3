@@ -13,7 +13,7 @@ from keras.models import load_model
 from keras.layers import Input
 from PIL import ImageFont, ImageDraw
 
-from yolo_detect.utils import find_bbox_corners, log_detection_outputs_to_json
+from yolo_detect.utils import non_negative_coord_suppress_bboxes, compute_bboxes_centerpoints, log_detection_outputs_to_json
 from models.yolo3_model import yolo_eval, yolo_body, tiny_yolo_body
 from models.utils import letterbox_image
 import os
@@ -109,7 +109,7 @@ class YOLO(object):
                 score_threshold=self.score, iou_threshold=self.iou)
         return boxes, scores, classes
 
-    def detect_image(self, image, return_outputs=False):
+    def detect_image(self, image, return_intermediate_outputs=False):
         start = timer()
 
         if self.model_image_size != (None, None):
@@ -134,16 +134,23 @@ class YOLO(object):
                 K.learning_phase(): 0
             })
 
-        print('Found {} boxes for {}'.format(len(out_boxes), 'img'))
+        # force negative coords to 0
+        out_boxes = non_negative_coord_suppress_bboxes(out_boxes, image.size)
+        box_centerpoints = compute_bboxes_centerpoints(out_boxes)
 
         labels = np.array([self.class_names[c] for c in out_classes])
         selected_indices = np.array([i for i, l in enumerate(labels) if l in self.vehicle_classes_names])
 
-        if return_outputs:
-            return image, log_detection_outputs_to_json(out_boxes, out_scores, labels, image.size, selected_indices)
+        print('Found {} vehicle boxes for {}'.format(len(selected_indices), 'img'))
+
+        if return_intermediate_outputs:
+            outputs_json = log_detection_outputs_to_json(out_boxes, box_centerpoints,
+                                                         out_scores, labels, image.size,
+                                                         selected_indices)
+            return image, outputs_json
 
         font = ImageFont.truetype(font='font/FiraMono-Medium.otf',
-                    size=np.floor(3e-2 * image.size[1] + 0.5).astype('int32'))
+                                  size=np.floor(3e-2 * image.size[1] + 0.5).astype('int32'))
         thickness = (image.size[0] + image.size[1]) // 300
 
         for i in selected_indices:
@@ -156,7 +163,7 @@ class YOLO(object):
             draw = ImageDraw.Draw(image)
             label_size = draw.textsize(label, font)
 
-            top, left, bottom, right = find_bbox_corners(box, image.size)
+            top, left, bottom, right = box
 
             if top - label_size[1] >= 0:
                 text_origin = np.array([left, top - label_size[1]])

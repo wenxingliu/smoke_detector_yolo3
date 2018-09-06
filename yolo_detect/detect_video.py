@@ -3,7 +3,9 @@ import os
 from timeit import default_timer as timer
 
 import numpy as np
-from PIL import Image
+
+
+__author__ = 'sliu'
 
 
 def detect_video(yolo, video_path, output_path=""):
