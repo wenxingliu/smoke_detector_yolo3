@@ -6,14 +6,15 @@ Class definition of YOLO_v3 style detection model on image and video
 import colorsys
 from timeit import default_timer as timer
 
+import datetime as dt
 import numpy as np
 from keras import backend as K
 from keras.models import load_model
 from keras.layers import Input
 from PIL import ImageFont, ImageDraw
 
+from yolo_detect.utils import non_negative_coord_suppress_bboxes, compute_bboxes_centerpoints, log_detection_outputs_to_json
 from models.yolo3_model import yolo_eval, yolo_body, tiny_yolo_body
-from yolo_detect.utils import discard_overlapping_boxes
 from models.utils import letterbox_image
 import os
 from keras.utils import multi_gpu_model
@@ -108,7 +109,7 @@ class YOLO(object):
                 score_threshold=self.score, iou_threshold=self.iou)
         return boxes, scores, classes
 
-    def detect_image(self, image):
+    def detect_image(self, image, return_intermediate_outputs=False):
         start = timer()
 
         if self.model_image_size != (None, None):
@@ -133,14 +134,23 @@ class YOLO(object):
                 K.learning_phase(): 0
             })
 
-        print('Found {} boxes for {}'.format(len(out_boxes), 'img'))
+        # force negative coords to 0
+        out_boxes = non_negative_coord_suppress_bboxes(out_boxes, image.size)
+        box_centerpoints = compute_bboxes_centerpoints(out_boxes)
 
+        labels = np.array([self.class_names[c] for c in out_classes])
+        selected_indices = np.array([i for i, l in enumerate(labels) if l in self.vehicle_classes_names])
 
-        selected_indices = np.array([i for i, c in enumerate(out_classes)
-                                     if self.class_names[c] in self.vehicle_classes_names])
+        print('Found {} vehicle boxes for {}'.format(len(selected_indices), 'img'))
+
+        if return_intermediate_outputs:
+            outputs_json = log_detection_outputs_to_json(out_boxes, box_centerpoints,
+                                                         out_scores, labels, image.size,
+                                                         selected_indices)
+            return image, outputs_json
 
         font = ImageFont.truetype(font='font/FiraMono-Medium.otf',
-                    size=np.floor(3e-2 * image.size[1] + 0.5).astype('int32'))
+                                  size=np.floor(3e-2 * image.size[1] + 0.5).astype('int32'))
         thickness = (image.size[0] + image.size[1]) // 300
 
         for i in selected_indices:
@@ -154,20 +164,6 @@ class YOLO(object):
             label_size = draw.textsize(label, font)
 
             top, left, bottom, right = box
-            top = max(0, np.floor(top + 0.5).astype('int32'))
-            left = max(0, np.floor(left + 0.5).astype('int32'))
-            bottom = min(image.size[1], np.floor(bottom + 0.5).astype('int32'))
-            right = min(image.size[0], np.floor(right + 0.5).astype('int32'))
-
-            center_coords = [(right + left)/2, (top + bottom)/2]
-            if (center_coords[1] < image.size[1]/2) | (center_coords[1] > 3*image.size[1]/4):
-                print('box not in the center, discard')
-                print(label, (left, top), (right, bottom))
-                continue
-            if center_coords[0] < image.size[0]/4:
-                print('box not on the right side, discard')
-                print(label, (left, top), (right, bottom))
-                continue
 
             if top - label_size[1] >= 0:
                 text_origin = np.array([left, top - label_size[1]])

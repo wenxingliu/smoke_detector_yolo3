@@ -8,6 +8,8 @@ if current_path.endswith(path_suffix):
     parent_path = current_path.rsplit(path_suffix, 1)[0]
     os.chdir(parent_path)
 
+__author__ = 'sliu'
+
 if __name__ == '__main__':
 
     """

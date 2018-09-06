@@ -1,11 +1,16 @@
+import cv2
+import os
 from timeit import default_timer as timer
 
 import numpy as np
-from PIL import Image
+
+
+__author__ = 'sliu'
 
 
 def detect_video(yolo, video_path, output_path=""):
-    import cv2
+    if not os.path.isfile(video_path):
+        raise IOError("Video path not valid")
     vid = cv2.VideoCapture(video_path)
     if not vid.isOpened():
         raise IOError("Couldn't open webcam or video")
