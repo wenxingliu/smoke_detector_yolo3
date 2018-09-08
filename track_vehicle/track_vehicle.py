@@ -1,11 +1,57 @@
 import numpy as np
 from scipy.spatial.distance import cdist
 
+from log_utils import save_numpy_file, save_image_to_file
 from track_vehicle.utils import is_bbox_leaving_camera, compute_bbox_sizes, find_index_of_given_bbox, \
-    find_bigger_bboxes_indices, pair_should_be_filtered_out
-
+    find_bigger_bboxes_indices, pair_should_be_filtered_out, aug_bbox_range
 
 __author__ = 'sliu'
+
+
+def bounding_box_tracking(yolo_outputs, output_dir):
+    paired_bboxes_list = compute_pairwise_bbox_match(yolo_outputs, top_N=10)
+    tracked_bboxes_dict = track_all_bboxes_for_n_frames(paired_bboxes_list,
+                                                        start_frame_index=0,
+                                                        look_at_num_frames=len(yolo_outputs),
+                                                        track_num_frames=20)
+
+    # save to file
+    save_numpy_file(output_dir, 'tracked_bboxes_dict', np.array([tracked_bboxes_dict]))
+
+    return tracked_bboxes_dict
+
+
+def crop_bbox_from_image(yolo_outputs, images_dict, tracked_bboxes_dict, output_dir,
+                         w_aug_factor=0.2, h_aug_factor=0.2, save_cropped_image=False):
+    cropped_images = {}
+
+    interval = 15
+    previous_index = -1 * interval
+
+    for i, track_path in tracked_bboxes_dict.items():
+        if i - previous_index <= interval:
+            continue
+
+        previous_index = i
+
+        for j, bbox in track_path.items():
+            if (i != j) and (j - i) % 5 == 0:
+                processed_image = images_dict[j]
+                image_size = yolo_outputs[j]['image_size']
+                crop_top, crop_left, crop_bottom, crop_right = aug_bbox_range(bbox, image_size, w_aug_factor,
+                                                                              h_aug_factor)
+                cropped_img = processed_image[crop_top:crop_bottom, crop_left:crop_right, ]
+                cropped_images[(i, j)] = cropped_img
+
+                if save_cropped_image:
+                    image_file_name = 'cropped_%d_%d' % (i, j)
+                    save_image_to_file(output_dir, image_file_name, cropped_img)
+
+
+    # save to file
+    save_numpy_file(output_dir, 'cropped_images', np.array([cropped_images]))
+
+    return cropped_images
 
 
 def track_all_bboxes_for_n_frames(paired_bboxes_list, start_frame_index, look_at_num_frames, track_num_frames):
@@ -130,5 +176,3 @@ def compute_pairwise_bbox_match(yolo_detection_output_list, top_N):
                                                                  top_N=top_N)
         paired_bboxes_list.append(paired_bboxes)
     return paired_bboxes_list
-
-
