@@ -34,7 +34,7 @@ def track_and_export_bboxes_in_all_videos_in_dir(videos_dir, root_out_dir):
 def track_vehicle_and_export_bboxes(yolo, video_path, output_dir, save_cropped_image=True):
     yolo_outputs, images_dict = yolo_detect_object_and_export_interim_outputs(yolo, video_path, output_dir)
 
-    tracked_bboxes_dict = bounding_box_tracking(yolo_outputs, output_dir)[0]
+    tracked_bboxes_dict = bounding_box_tracking(yolo_outputs, output_dir)
 
     cropped_images = crop_bbox_from_image(yolo_outputs, images_dict, tracked_bboxes_dict, output_dir,
                                           w_aug_factor=0.2, h_aug_factor=0.2, save_cropped_image=save_cropped_image)
