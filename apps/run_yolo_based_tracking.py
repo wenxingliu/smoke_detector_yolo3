@@ -32,19 +32,21 @@ def track_and_export_bboxes_in_all_videos_in_dir(videos_dir, root_out_dir):
 
 
 def track_vehicle_and_export_bboxes(yolo, video_path, output_dir, save_cropped_image=True):
-    (images_dict, yolo_outputs) = yolo_detect_object_and_export_interim_outputs(yolo, video_path, output_dir)
+    yolo_outputs, images_dict = yolo_detect_object_and_export_interim_outputs(yolo, video_path, output_dir)
 
     tracked_bboxes_dict = bounding_box_tracking(yolo_outputs, output_dir)[0]
 
     cropped_images = crop_bbox_from_image(yolo_outputs, images_dict, tracked_bboxes_dict, output_dir,
                                           w_aug_factor=0.2, h_aug_factor=0.2, save_cropped_image=save_cropped_image)
 
+    del images_dict, yolo_outputs, tracked_bboxes_dict
+
     return cropped_images
 
 
 if __name__ == '__main__':
     video_path = 'C://dev//smoke_detector_yolo3//input_data//videos//41琉璃河ch0_CHANNEL0_20180108_11_56_50.avi'
-    output_dir = 'C://dev//smoke_detector_yolo3//output_data//1//'
+    output_dir = 'C://dev//smoke_detector_yolo3//output_data//1//41琉璃河ch0_CHANNEL0_20180108_11_56_50//'
     yolo = YOLO()
     track_vehicle_and_export_bboxes(yolo, video_path, output_dir, True)
     yolo.close_session()
