@@ -20,3 +20,6 @@ input_data/*
 output_data/*
 model_data/yolov3.weights
 model_data/yolo.h5
+
+# archive
+archives/*
