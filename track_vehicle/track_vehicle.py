@@ -70,12 +70,11 @@ def track_all_bboxes_for_n_frames(paired_bboxes_list, start_frame_index, look_at
 
                 current_box_size = compute_bbox_sizes(np.array([track_path[frame_index]]))
 
-                # TODO: finds the box in the middle
                 if (
                         frame_index in tracked_boxes_dict
                         and tracked_boxes_dict[frame_index][frame_index][2] < track_path[frame_index][2]
                         and current_box_size < track_box_size_dict[frame_index]
-                        and len(track_path) >= track_num_frames
+                        and len(track_path) > track_num_frames
                 ):
                     continue
 
