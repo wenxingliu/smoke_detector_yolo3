@@ -16,7 +16,7 @@ __author__ = 'sliu'
 
 
 
-def track_and_export_bboxes_in_all_videos_in_dir(videos_dir, root_out_dir):
+def track_and_export_bboxes_in_all_videos_in_dir(videos_dir, root_out_dir, overwrite=False):
     yolo = YOLO()
 
     video_files = [f for f in os.listdir(videos_dir)
@@ -27,6 +27,14 @@ def track_and_export_bboxes_in_all_videos_in_dir(videos_dir, root_out_dir):
         video_num_str = video_file_name[:[s.isdigit() for s in video_file_name].index(False)]
         out_dir = root_out_dir + '//%s//' % video_num_str
         out_dir = os.path.join(root_out_dir, out_dir)
+
+        if os.path.isdir(out_dir):
+            if overwrite:
+                os.rmdir(out_dir)
+            else:
+                continue
+
+        print('Process video %s' % video_file_name)
         track_vehicle_and_export_bboxes(yolo, video_file_path, out_dir,
                                         top_N=5, track_num_frames=25,
                                         interval=5, export_every_n=5,

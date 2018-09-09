@@ -109,7 +109,7 @@ class YOLO(object):
                 score_threshold=self.score, iou_threshold=self.iou)
         return boxes, scores, classes
 
-    def detect_image(self, image, return_intermediate_outputs=False):
+    def detect_image(self, image, return_intermediate_outputs=False, print_log=False):
         start = timer()
 
         if self.model_image_size != (None, None):
@@ -122,7 +122,9 @@ class YOLO(object):
             boxed_image = letterbox_image(image, new_image_size)
         image_data = np.array(boxed_image, dtype='float32')
 
-        print(image_data.shape)
+        if print_log:
+            print(image_data.shape)
+
         image_data /= 255.
         image_data = np.expand_dims(image_data, 0)  # Add batch dimension.
 
@@ -141,7 +143,8 @@ class YOLO(object):
         labels = np.array([self.class_names[c] for c in out_classes])
         selected_indices = np.array([i for i, l in enumerate(labels) if l in self.vehicle_classes_names])
 
-        print('Found {} vehicle boxes for {}'.format(len(selected_indices), 'img'))
+        if print_log:
+            print('Found {} vehicle boxes for {}'.format(len(selected_indices), 'img'))
 
         if return_intermediate_outputs:
             outputs_json = log_detection_outputs_to_json(out_boxes, box_centerpoints,
