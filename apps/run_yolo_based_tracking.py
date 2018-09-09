@@ -24,9 +24,14 @@ def track_and_export_bboxes_in_all_videos_in_dir(videos_dir, root_out_dir):
 
     for video_file_name in video_files:
         video_file_path = os.path.join(videos_dir, video_file_name)
-        out_dir = video_file_name.split('.avi')
+        video_num_str = video_file_name[:[s.isdigit() for s in video_file_name].index(False)]
+        out_dir = root_out_dir + '//%s//' % video_num_str
         out_dir = os.path.join(root_out_dir, out_dir)
-        track_vehicle_and_export_bboxes(yolo, video_file_path, out_dir, True)
+        track_vehicle_and_export_bboxes(yolo, video_file_path, out_dir,
+                                        top_N=5, track_num_frames=25,
+                                        interval=5, export_every_n=5,
+                                        w_aug_factor=0.05, h_aug_factor=0.2,
+                                        save_cropped_image=True)
 
     yolo.close_session()
 
