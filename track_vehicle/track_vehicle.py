@@ -8,12 +8,12 @@ from track_vehicle.utils import is_bbox_leaving_camera, compute_bbox_sizes, find
 __author__ = 'sliu'
 
 
-def bounding_box_tracking(yolo_outputs, output_dir):
-    paired_bboxes_list = compute_pairwise_bbox_match(yolo_outputs, top_N=10)
+def bounding_box_tracking(yolo_outputs, output_dir, top_N=5, track_num_frames=20):
+    paired_bboxes_list = compute_pairwise_bbox_match(yolo_outputs, top_N=top_N)
     tracked_bboxes_dict = track_all_bboxes_for_n_frames(paired_bboxes_list,
                                                         start_frame_index=0,
                                                         look_at_num_frames=len(yolo_outputs),
-                                                        track_num_frames=20)
+                                                        track_num_frames=track_num_frames)
 
     # save to file
     save_numpy_file(output_dir, 'tracked_bboxes_dict', np.array([tracked_bboxes_dict]))

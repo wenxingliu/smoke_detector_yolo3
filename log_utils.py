@@ -41,3 +41,9 @@ def save_image_to_file(dir_path, file_name, image_obj):
         os.remove(file_name)
 
     cv2.imwrite(file_path, image_arr)
+
+
+def load_image(dir_path, file_name):
+    image_file_path = os.path.join(dir_path, file_name)
+    image = cv2.imread(image_file_path)
+    return image
