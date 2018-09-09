@@ -22,10 +22,9 @@ def bounding_box_tracking(yolo_outputs, output_dir, top_N=5, track_num_frames=20
 
 
 def crop_bbox_from_image(yolo_outputs, images_dict, tracked_bboxes_dict, output_dir,
-                         w_aug_factor=0.2, h_aug_factor=0.2, save_cropped_image=False):
+                         w_aug_factor=0.2, h_aug_factor=0.2, interval=10, export_every_n=5,
+                         save_cropped_image=False):
     cropped_images = {}
-
-    interval = 15
     previous_index = -1 * interval
 
     for i, track_path in tracked_bboxes_dict.items():
@@ -35,7 +34,7 @@ def crop_bbox_from_image(yolo_outputs, images_dict, tracked_bboxes_dict, output_
         previous_index = i
 
         for j, bbox in track_path.items():
-            if (i != j) and (j - i) % 5 == 0:
+            if (i != j) and (j - i) % export_every_n == 0:
                 processed_image = np.array(images_dict[j], dtype='float32')
                 image_size = yolo_outputs[j]['image_size']
                 crop_top, crop_left, crop_bottom, crop_right = aug_bbox_range(bbox, image_size,
@@ -54,7 +53,8 @@ def crop_bbox_from_image(yolo_outputs, images_dict, tracked_bboxes_dict, output_
     return cropped_images
 
 
-def track_all_bboxes_for_n_frames(paired_bboxes_list, start_frame_index, look_at_num_frames, track_num_frames):
+def track_all_bboxes_for_n_frames(paired_bboxes_list, start_frame_index, look_at_num_frames,
+                                  track_num_frames):
     tracked_boxes_dict = {}
     track_box_size_dict = {}
 
@@ -75,6 +75,7 @@ def track_all_bboxes_for_n_frames(paired_bboxes_list, start_frame_index, look_at
                         frame_index in tracked_boxes_dict
                         and tracked_boxes_dict[frame_index][frame_index][2] < track_path[frame_index][2]
                         and current_box_size < track_box_size_dict[frame_index]
+                        and len(track_path) >= track_num_frames
                 ):
                     continue
 
