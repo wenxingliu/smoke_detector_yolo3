@@ -1,7 +1,7 @@
 import numpy as np
 
-__author__ = 'sliu'
 
+__author__ = 'sliu'
 
 
 def log_detection_outputs_to_json(bboxes, centerpoints, scores, labels, image_size, vehicle_box_indices):

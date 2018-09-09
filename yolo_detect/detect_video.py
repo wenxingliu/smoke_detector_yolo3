@@ -1,9 +1,12 @@
+from collections import defaultdict
 import cv2
 import os
 from timeit import default_timer as timer
 
 import numpy as np
+from PIL import Image
 
+from log_utils import save_numpy_file, save_image_to_file
 
 __author__ = 'sliu'
 
@@ -49,3 +52,32 @@ def detect_video(yolo, video_path, output_path=""):
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
     yolo.close_session()
+
+
+def yolo_detect_object_and_export_interim_outputs(yolo, video_path, output_dir):
+    vid = cv2.VideoCapture(video_path)
+
+    yolo_outputs = defaultdict()
+    images_dict = defaultdict()
+
+    curr_fps = 0
+    return_value, frame = vid.read()
+    while return_value:
+        image = Image.fromarray(frame)
+        processed_image, bboxes_info = yolo.detect_image(image, True)
+        if len(bboxes_info) > 0:
+            yolo_outputs[curr_fps] = bboxes_info
+            images_dict[curr_fps] = processed_image
+            save_image_to_file(output_dir, 'processed_%d' % curr_fps, processed_image)
+            curr_fps += 1
+
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+        del return_value, frame, processed_image, bboxes_info
+        return_value, frame = vid.read()
+
+    # save to file
+    save_numpy_file(output_dir, 'yolo_detection_outputs', np.array([yolo_outputs]))
+
+    return yolo_outputs, images_dict

@@ -68,6 +68,18 @@ def find_index_of_given_bbox(given_bbox, list_of_bboxes):
              return i
 
 
+def aug_bbox_range(bbox, image_size, w_aug_factor, h_aug_factor):
+    top, left, bottom, right = bbox
+    h, w = (bottom - top), (right - left)
+    # crop_top = np.max([0, top - h*h_aug_factor]).astype(int)
+    crop_top = np.max([0, top]).astype(int)
+    # crop_left = np.max([0, left - w*w_aug_factor]).astype(int)
+    crop_left = np.max([0, left]).astype(int)
+    crop_bottom = np.min([image_size[1], bottom + h*h_aug_factor]).astype(int)
+    crop_right = np.min([image_size[0], right + w*w_aug_factor]).astype(int)
+    return crop_top, crop_left, crop_bottom, crop_right
+
+
 def generate_colors_dict(N):
     hsv_tuples = [(x / 13, 1., 1.) for x in range(N)]
     colors = list(map(lambda x: colorsys.hsv_to_rgb(*x), hsv_tuples))
