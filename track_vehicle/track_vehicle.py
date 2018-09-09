@@ -22,7 +22,7 @@ def bounding_box_tracking(yolo_outputs, output_dir, top_N=5, track_num_frames=20
 
 
 def crop_bbox_from_image(yolo_outputs, images_dict, tracked_bboxes_dict, output_dir,
-                         w_aug_factor=0.2, h_aug_factor=0.2, interval=10, export_every_n=5,
+                         w_aug_factor=0.1, h_aug_factor=0.2, interval=10, export_every_n=5,
                          save_cropped_image=False):
     cropped_images = {}
     previous_index = -1 * interval

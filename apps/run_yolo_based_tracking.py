@@ -38,7 +38,7 @@ def track_and_export_bboxes_in_all_videos_in_dir(videos_dir, root_out_dir, overw
         track_vehicle_and_export_bboxes(yolo, video_file_path, out_dir,
                                         top_N=5, track_num_frames=25,
                                         interval=5, export_every_n=5,
-                                        w_aug_factor=0.05, h_aug_factor=0.2,
+                                        w_aug_factor=0.1, h_aug_factor=0.1,
                                         save_cropped_image=True)
 
     yolo.close_session()
