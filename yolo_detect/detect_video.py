@@ -74,13 +74,14 @@ def yolo_detect_object_and_export_interim_outputs(yolo, video_path, output_dir, 
             yolo_outputs[curr_fps] = bboxes_info
             images_dict[curr_fps] = processed_image
             save_image_to_file(output_dir, 'processed_%d' % curr_fps, processed_image)
-            curr_fps += 1
             object_tracker.frame_index = curr_fps
             object_tracker.add_new_frame_to_tracker(new_frame=processed_image,
                                                     new_frame_bboxes=bboxes_info['bboxes'],
                                                     min_export_frames=min_export_frames)
         else:
             object_tracker.clear()
+
+        curr_fps += 1
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break

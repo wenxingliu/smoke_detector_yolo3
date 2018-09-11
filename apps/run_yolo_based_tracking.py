@@ -7,6 +7,7 @@ if current_path.endswith(path_suffix):
     parent_path = current_path.rsplit(path_suffix, 1)[0]
     os.chdir(parent_path)
 
+from shutil import rmtree
 from yolo_detect.yolo import YOLO
 from yolo_detect.detect_video import yolo_detect_object_and_export_interim_outputs
 from track_vehicle.track_vehicle import bounding_box_tracking, crop_bbox_from_image
@@ -30,7 +31,7 @@ def track_and_export_bboxes_in_all_videos_in_dir(videos_dir, root_out_dir, overw
 
         if os.path.isdir(out_dir):
             if overwrite:
-                os.rmdir(out_dir)
+                rmtree(out_dir)
             else:
                 continue
 

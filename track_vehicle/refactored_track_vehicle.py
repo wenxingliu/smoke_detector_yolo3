@@ -30,13 +30,13 @@ class TrackVehicle:
         self.new_frame_bboxes = None
 
     def add_new_frame_to_tracker(self, new_frame, new_frame_bboxes, min_export_frames=None):
-        if self.tracked_objects is None:
+        if not self.tracked_objects:
             self.initiate_with_first_image(new_frame, new_frame_bboxes)
         else:
             self.intake_new_frame_and_bboxes(new_frame, new_frame_bboxes)
             self.attribute_new_frame_bboxes_to_tracking_history()
 
-        if (self.popped_out_objects) and (min_export_frames is not None):
+        if self.popped_out_objects and min_export_frames:
             self.export_tracking_objects(min_export_frames)
 
     def initiate_with_first_image(self, new_frame, new_frame_bboxes):
