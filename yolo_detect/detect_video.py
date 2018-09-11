@@ -6,6 +6,7 @@ from timeit import default_timer as timer
 import numpy as np
 from PIL import Image
 
+from track_vehicle.refactored_track_vehicle import TrackVehicle
 from log_utils import save_numpy_file, save_image_to_file
 
 __author__ = 'sliu'
@@ -54,7 +55,10 @@ def detect_video(yolo, video_path, output_path=""):
     yolo.close_session()
 
 
-def yolo_detect_object_and_export_interim_outputs(yolo, video_path, output_dir):
+def yolo_detect_object_and_export_interim_outputs(yolo, video_path, output_dir, min_export_frames=None):
+
+    object_tracker = TrackVehicle(output_dir=output_dir)
+
     vid = cv2.VideoCapture(video_path)
 
     yolo_outputs = defaultdict()
@@ -65,11 +69,18 @@ def yolo_detect_object_and_export_interim_outputs(yolo, video_path, output_dir):
     while return_value:
         image = Image.fromarray(frame)
         processed_image, bboxes_info = yolo.detect_image(image, True)
+
         if len(bboxes_info) > 0:
             yolo_outputs[curr_fps] = bboxes_info
             images_dict[curr_fps] = processed_image
             save_image_to_file(output_dir, 'processed_%d' % curr_fps, processed_image)
             curr_fps += 1
+            object_tracker.frame_index = curr_fps
+            object_tracker.add_new_frame_to_tracker(new_frame=processed_image,
+                                                    new_frame_bboxes=bboxes_info['bboxes'],
+                                                    min_export_frames=min_export_frames)
+        else:
+            object_tracker.clear()
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
