@@ -22,7 +22,7 @@ class TrackVehicle:
         self.new_frame_bboxes = None
         self.frame_index = frame_index
 
-    def clear(self):
+    def clear_history(self):
         self.frames_history = deque()
         self.tracked_objects = None
         self.popped_out_objects = None

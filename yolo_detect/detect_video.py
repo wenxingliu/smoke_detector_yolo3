@@ -79,7 +79,7 @@ def yolo_detect_object_and_export_interim_outputs(yolo, video_path, output_dir, 
                                                     new_frame_bboxes=bboxes_info['bboxes'],
                                                     min_export_frames=min_export_frames)
         else:
-            object_tracker.clear()
+            object_tracker.clear_history()
 
         curr_fps += 1
 
