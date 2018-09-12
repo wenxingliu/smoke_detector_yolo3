@@ -10,9 +10,9 @@ from yolo_detect.utils import compute_bboxes_centerpoints
 __author__ = 'sliu'
 
 
-class TrackVehicle:
+class VehicleTracker:
 
-    def __init__(self, max_frame_storage=100, output_dir='', frame_index=0):
+    def __init__(self, max_frame_storage=100, output_dir='', frame_index=0, min_frames_export=10):
         self.max_frame_storage = max_frame_storage
         self.output_dir = output_dir
         self.frames_history = deque()
@@ -21,6 +21,7 @@ class TrackVehicle:
         self.previous_frame_bboxes = None
         self.new_frame_bboxes = None
         self.frame_index = frame_index
+        self.min_frames_export = min_frames_export
 
     def clear_history(self):
         self.frames_history = deque()
@@ -29,15 +30,15 @@ class TrackVehicle:
         self.previous_frame_bboxes = None
         self.new_frame_bboxes = None
 
-    def add_new_frame_to_tracker(self, new_frame, new_frame_bboxes, min_export_frames=None):
+    def add_new_frame_to_tracker(self, new_frame, new_frame_bboxes, export=True):
         if not self.tracked_objects:
             self.initiate_with_first_image(new_frame, new_frame_bboxes)
         else:
             self.intake_new_frame_and_bboxes(new_frame, new_frame_bboxes)
             self.attribute_new_frame_bboxes_to_tracking_history()
 
-        if self.popped_out_objects and min_export_frames:
-            self.export_tracking_objects(min_export_frames)
+        if self.popped_out_objects and export:
+            self.export_tracking_objects()
 
     def initiate_with_first_image(self, new_frame, new_frame_bboxes):
         box_centerpoints = compute_bboxes_centerpoints(new_frame_bboxes)
@@ -54,7 +55,7 @@ class TrackVehicle:
         if len(self.frames_history) > self.max_frame_storage:
             self.frames_history.popleft()
 
-    def attribute_new_frame_bboxes_to_tracking_history(self, distance_threshold=50, iou_threshold=0.8):
+    def attribute_new_frame_bboxes_to_tracking_history(self, distance_threshold=100, iou_threshold=0.5):
         num_boxes_0 = len(self.previous_frame_bboxes)
         num_boxes_1 = len(self.new_frame_bboxes)
         num_boxes_tracking = min(num_boxes_0, num_boxes_1)
@@ -90,16 +91,19 @@ class TrackVehicle:
         left_over_bboxes_in_new_frame = [bbox for i, bbox in enumerate(self.new_frame_bboxes)
                                          if i not in used_new_frame_bbox_indices]
 
-        self._discard_and_export_lost_tracking_object(tracked_box_indices)
+        self._discard_lost_tracking_object(tracked_box_indices)
         self._append_new_tracking_object(left_over_bboxes_in_new_frame)
         self._keep_leaving_camera_objects_only()
+        self._discard_long_tracking_objects()
 
-    def export_tracking_objects(self, min_export_frames):
+    def export_tracking_objects(self):
+        obj_no = 0
         for object_history in self.popped_out_objects:
-            if len(object_history) >= min_export_frames:
-                self._crop_and_export_bbox(object_history)
+            if len(object_history) >= self.min_frames_export:
+                self._crop_and_export_bbox(object_history, obj_no)
+                obj_no += 1
 
-    def _discard_and_export_lost_tracking_object(self, tracked_box_indices):
+    def _discard_lost_tracking_object(self, tracked_box_indices):
         popped_out_objects = deque()
         tracked_objects = deque()
 
@@ -112,8 +116,8 @@ class TrackVehicle:
         self.popped_out_objects = popped_out_objects
         self.tracked_objects = tracked_objects
 
-    def _crop_and_export_bbox(self, tracking_history, w_aug_factor=0.2, h_aug_factor=0.2):
-        for i, bbox in enumerate(tracking_history[::-1]):
+    def _crop_and_export_bbox(self, tracking_history, object_number=0, w_aug_factor=0.2, h_aug_factor=0.2):
+        for i, bbox in enumerate(tracking_history[::-1][:self.max_frame_storage]):
             corresponding_frame = self.frames_history[-(i+1)]
             image_size = corresponding_frame.size
             corresponding_frame = np.array(corresponding_frame, dtype='float32')
@@ -123,7 +127,7 @@ class TrackVehicle:
                                                                           h_aug_factor)
             cropped_img = corresponding_frame[crop_top:crop_bottom, crop_left:crop_right, ]
             tracking_no = len(tracking_history) - i
-            image_file_name = 'cropped_%d_%d' % (self.frame_index, tracking_no)
+            image_file_name = 'cropped_%d_%d_%d' % (self.frame_index, object_number, tracking_no)
             save_image_to_file(self.output_dir, image_file_name, cropped_img)
 
     def _append_new_tracking_object(self, new_objects):
@@ -135,13 +139,16 @@ class TrackVehicle:
                                      if (self._tracked_object_not_have_enough_history(tracking_history))
                                      | (self._is_bbox_leaving_camera(np.array(tracking_history))))
 
-    def _tracked_object_not_have_enough_history(self, tracked_bboxes, min_frames=10):
-        return len(tracked_bboxes) < min_frames
+    def _discard_long_tracking_objects(self):
+        self.tracked_objects = deque(tracking_history for tracking_history in self.tracked_objects
+                                     if len(tracking_history) < self.max_frame_storage)
 
-    def _is_bbox_leaving_camera(self, tracked_bboxes, min_frames=10, threshold=0.8):
-        if len(tracked_bboxes) < min_frames:
+    def _tracked_object_not_have_enough_history(self, tracked_bboxes):
+        return len(tracked_bboxes) < self.min_frames_export
+
+    def _is_bbox_leaving_camera(self, tracked_bboxes, threshold=0.6):
+        if len(tracked_bboxes) < self.min_frames_export:
             return False
         centerpoints = compute_bboxes_centerpoints(tracked_bboxes)
-        moving_further_rate = np.mean([centerpoints[i, 1] - centerpoints[i + 1, 1] > 0
-                                       for i in range(centerpoints.shape[0] - 1)])
-        return moving_further_rate >= threshold
+        leaving = centerpoints[0, 1] - centerpoints[-1, 1] > 0
+        return leaving

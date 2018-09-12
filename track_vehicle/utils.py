@@ -16,6 +16,14 @@ def compute_bbox_sizes(bboxes):
     return box_sizes
 
 
+def filter_small_bboxes(image_size, bboxes, ratio_threshold=0.01):
+    bbox_sizes = compute_bbox_sizes(bboxes)
+    image_size = image_size.size[0] * image_size.size[1]
+    ratios = bbox_sizes / image_size
+    filtered_bboxes = bboxes[ratios >= ratio_threshold]
+    return filtered_bboxes
+
+
 def pair_should_be_filtered_out(bbox_0, bbox_1, center_0, center_1, distance_threshold, iou_threshold):
     # IOU too small
     if paired_boxes_iou_too_small(bbox_0, bbox_1, iou_threshold):
@@ -24,6 +32,7 @@ def pair_should_be_filtered_out(bbox_0, bbox_1, center_0, center_1, distance_thr
     distance = euclidean(center_0, center_1)
     if distance > distance_threshold:
         return True
+
     return False
 
 

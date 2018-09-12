@@ -6,7 +6,8 @@ from timeit import default_timer as timer
 import numpy as np
 from PIL import Image
 
-from track_vehicle.refactored_track_vehicle import TrackVehicle
+from track_vehicle.vehicle_tracker import VehicleTracker
+from track_vehicle.utils import filter_small_bboxes
 from log_utils import save_numpy_file, save_image_to_file
 
 __author__ = 'sliu'
@@ -55,9 +56,9 @@ def detect_video(yolo, video_path, output_path=""):
     yolo.close_session()
 
 
-def yolo_detect_object_and_export_interim_outputs(yolo, video_path, output_dir, min_export_frames=None):
+def yolo_detect_object_and_export_interim_outputs(yolo, video_path, output_dir, min_frames_export=5):
 
-    object_tracker = TrackVehicle(output_dir=output_dir)
+    object_tracker = VehicleTracker(output_dir=output_dir, min_frames_export=min_frames_export)
 
     vid = cv2.VideoCapture(video_path)
 
@@ -76,8 +77,7 @@ def yolo_detect_object_and_export_interim_outputs(yolo, video_path, output_dir, 
             save_image_to_file(output_dir, 'processed_%d' % curr_fps, processed_image)
             object_tracker.frame_index = curr_fps
             object_tracker.add_new_frame_to_tracker(new_frame=processed_image,
-                                                    new_frame_bboxes=bboxes_info['bboxes'],
-                                                    min_export_frames=min_export_frames)
+                                                    new_frame_bboxes=bboxes_info['bboxes'])
         else:
             object_tracker.clear_history()
 
