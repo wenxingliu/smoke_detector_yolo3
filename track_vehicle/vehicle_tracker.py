@@ -22,6 +22,7 @@ class VehicleTracker:
         self.new_frame_bboxes = None
         self.frame_index = frame_index
         self.min_frames_export = min_frames_export
+        self.average_moving_speed = 0
 
     def clear_history(self):
         self.frames_history = deque()
@@ -95,6 +96,7 @@ class VehicleTracker:
         self._append_new_tracking_object(left_over_bboxes_in_new_frame)
         self._keep_leaving_camera_objects_only()
         self._discard_long_tracking_objects()
+        self._update_vehicle_average_moving_speed()
 
     def export_tracking_objects(self):
         obj_no = 0
@@ -146,9 +148,30 @@ class VehicleTracker:
     def _tracked_object_not_have_enough_history(self, tracked_bboxes):
         return len(tracked_bboxes) < self.min_frames_export
 
-    def _is_bbox_leaving_camera(self, tracked_bboxes, threshold=0.6):
+    def _is_bbox_leaving_camera(self, tracked_bboxes):
         if len(tracked_bboxes) < self.min_frames_export:
             return False
         centerpoints = compute_bboxes_centerpoints(tracked_bboxes)
-        leaving = centerpoints[0, 1] - centerpoints[-1, 1] > 0
+        speed = (centerpoints[0, 1] - centerpoints[-1, 1]) / len(tracked_bboxes)
+        leaving = speed > self.average_moving_speed * 0.3
         return leaving
+
+    def _update_vehicle_average_moving_speed(self):
+        if self.frame_index % self.min_frames_export == 0:
+            try:
+                object_speeds = []
+                for object_history in self.tracked_objects:
+                    if len(object_history) >= self.min_frames_export:
+                        centerpoints = compute_bboxes_centerpoints(np.array(object_history))
+                        start_point = centerpoints[0][1]
+                        end_point = centerpoints[-1][1]
+                        object_speed = (start_point - end_point) / len(object_history)
+                        object_speeds.append(object_speed)
+                if object_speeds:
+                    current_average = np.mean(object_speeds)
+                    if self.average_moving_speed == 0:
+                        self.average_moving_speed = current_average
+                    else:
+                        self.average_moving_speed = self.average_moving_speed * 0.8 + current_average * 0.2
+            except:
+                pass
