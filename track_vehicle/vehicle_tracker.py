@@ -43,7 +43,7 @@ class VehicleTracker:
 
     def initiate_with_first_image(self, new_frame, new_frame_bboxes):
         box_centerpoints = compute_bboxes_centerpoints(new_frame_bboxes)
-        sorted_indices = np.argsort(box_centerpoints, axis=-1)[:, 1][::-1]
+        sorted_indices = np.argsort(box_centerpoints[:, 1])[::-1]
         self.new_frame_bboxes = new_frame_bboxes[sorted_indices]
         self.tracked_objects = deque([bbox] for bbox in new_frame_bboxes)
         self.frames_history.append(new_frame)
@@ -96,7 +96,6 @@ class VehicleTracker:
         self._append_new_tracking_object(left_over_bboxes_in_new_frame)
         self._keep_leaving_camera_objects_only()
         self._discard_long_tracking_objects()
-        self._update_vehicle_average_moving_speed()
 
     def export_tracking_objects(self):
         obj_no = 0
@@ -152,8 +151,8 @@ class VehicleTracker:
         if len(tracked_bboxes) < self.min_frames_export:
             return False
         centerpoints = compute_bboxes_centerpoints(tracked_bboxes)
-        speed = (centerpoints[0, 1] - centerpoints[-1, 1]) / len(tracked_bboxes)
-        leaving = speed > self.average_moving_speed * 0.3
+        moving_rate = np.mean([centerpoints[i, 1] >= centerpoints[(i+1), 1] for i in np.arange(len(centerpoints) - 1)])
+        leaving = (centerpoints[0, 1] - centerpoints[-1, 1]) > 0 and moving_rate > 0.4
         return leaving
 
     def _update_vehicle_average_moving_speed(self):
@@ -172,6 +171,6 @@ class VehicleTracker:
                     if self.average_moving_speed == 0:
                         self.average_moving_speed = current_average
                     else:
-                        self.average_moving_speed = self.average_moving_speed * 0.8 + current_average * 0.2
+                        self.average_moving_speed = self.average_moving_speed * 0.5 + current_average * 0.5
             except:
                 pass
