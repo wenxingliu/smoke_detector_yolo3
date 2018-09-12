@@ -9,7 +9,7 @@ if current_path.endswith(path_suffix):
 
 from shutil import rmtree
 from yolo_detect.yolo import YOLO
-from yolo_detect.detect_video import yolo_detect_object_and_export_interim_outputs
+from yolo_detect.detect_video import yolo_detect_object_and_export_interim_outputs, yolo_track_vehicles
 from track_vehicle.track_vehicle_bboxes import bounding_box_tracking, crop_bbox_from_image
 
 
@@ -66,8 +66,8 @@ def track_vehicle_and_export_bboxes(yolo, video_path, output_dir,
 
 
 if __name__ == '__main__':
-    video_path = 'C://dev//smoke_detector_yolo3//input_data//videos//41琉璃河ch0_CHANNEL0_20180108_11_56_50.avi'
-    output_dir = 'C://dev//smoke_detector_yolo3//output_data//41//'
+    video_path = 'C://dev//smoke_detector_yolo3//input_data//videos//368张坊进京ch0_2018_04_27_15_42_00.avi'
+    output_dir = 'C://dev//smoke_detector_yolo3//output_data//368//'
     yolo = YOLO()
-    yolo_detect_object_and_export_interim_outputs(yolo, video_path, output_dir, 5)
+    yolo_track_vehicles(yolo, video_path, output_dir, 5)
     yolo.close_session()
