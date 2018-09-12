@@ -152,7 +152,7 @@ class VehicleTracker:
             return False
         centerpoints = compute_bboxes_centerpoints(tracked_bboxes)
         moving_rate = np.mean([centerpoints[i, 1] >= centerpoints[(i+1), 1] for i in np.arange(len(centerpoints) - 1)])
-        leaving = (centerpoints[0, 1] - centerpoints[-1, 1]) > 0 and moving_rate > 0.4
+        leaving = (centerpoints[0, 1] - centerpoints[-1, 1]) > 0 and moving_rate > 0.3
         return leaving
 
     def _update_vehicle_average_moving_speed(self):
