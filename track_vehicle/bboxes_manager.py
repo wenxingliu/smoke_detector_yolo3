@@ -1,14 +1,15 @@
 import numpy as np
-from track_vehicle.utils import paired_boxes_iou_too_small, bboxes_intersection_over_union
+from track_vehicle.utils import paired_boxes_iou_too_small, bboxes_intersection_over_union, filter_small_bboxes
 
 __author__ = 'sliu'
 
 
 class BboxesManager:
 
-    def __init__(self, interval, iou_threshold=0.8):
+    def __init__(self, interval, iou_threshold=0.8, bbox_size_threshold=0.01):
         self.interval = interval
         self.iou_threshold = iou_threshold
+        self.bbox_size_threshold = bbox_size_threshold
 
         self.frames_count = 0
         self.new_bboxes = None
@@ -19,11 +20,12 @@ class BboxesManager:
         self.new_bboxes = None
         self.filtered_bboxes = np.array([])
 
-    def add_new_frame_exports(self, new_bboxes):
+    def add_new_frame_exports(self, image_size, new_bboxes):
         if self.frames_count >= self.interval:
             self.clear_history()
 
-        self.new_bboxes = self._dedupe_overlapping_bboxes_in_new_bboxes(new_bboxes)
+        filtered_new_bboxes = self._filter_out_small_bboxes(new_bboxes, image_size)
+        self.new_bboxes = self._dedupe_overlapping_bboxes_in_new_bboxes(filtered_new_bboxes)
 
         if self.frames_count == 0:
             self.filtered_bboxes = np.array(self.new_bboxes)
@@ -86,3 +88,10 @@ class BboxesManager:
     def _find_new_objects(self, paired_new_bbox_indices):
         new_objects = [bbox for i, bbox in enumerate(self.new_bboxes) if i not in paired_new_bbox_indices]
         return new_objects
+
+    def _filter_out_small_bboxes(self, new_bboxes, image_size):
+        if image_size:
+            filtered_bboxes = filter_small_bboxes(image_size, new_bboxes, ratio_threshold=self.bbox_size_threshold)
+            return filtered_bboxes
+        else:
+            return new_bboxes

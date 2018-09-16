@@ -9,10 +9,10 @@ def compute_bbox_sizes(bboxes):
     return box_sizes
 
 
-def filter_small_bboxes(image_size, bboxes, ratio_threshold=0.01):
+def filter_small_bboxes(image_size, bboxes, ratio_threshold):
     bbox_sizes = compute_bbox_sizes(bboxes)
-    image_size = image_size.size[0] * image_size.size[1]
-    ratios = bbox_sizes / image_size
+    whole_image_size = image_size[0] * image_size[1]
+    ratios = bbox_sizes / whole_image_size
     filtered_bboxes = bboxes[ratios >= ratio_threshold]
     return filtered_bboxes
 

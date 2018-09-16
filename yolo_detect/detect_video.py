@@ -69,8 +69,9 @@ def yolo_track_vehicles(yolo, video_path, output_dir, min_frames_export=3, inter
         image = Image.fromarray(frame)
         new_frame, bboxes_info = yolo.detect_image(image, True)
         new_bboxes = bboxes_info.get('bboxes', [])
+        image_size = bboxes_info.get('image_size')
 
-        bboxes_manager.add_new_frame_exports(new_bboxes=new_bboxes)
+        bboxes_manager.add_new_frame_exports(new_bboxes=new_bboxes, image_size=image_size)
 
         if bboxes_manager.ready_to_apply_tracking():
             object_tracker.frame_index = curr_fps
