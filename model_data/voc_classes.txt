@@ -13,7 +13,7 @@ dog
 horse
 motorbike
 person
-pottedplant
+pottedplant_truck
 sheep
 sofa
 train

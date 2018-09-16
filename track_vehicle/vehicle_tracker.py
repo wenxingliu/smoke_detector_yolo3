@@ -3,8 +3,7 @@ import numpy as np
 from scipy.spatial.distance import cdist
 
 from log_utils import save_numpy_file, save_image_to_file
-from track_vehicle.utils import is_bbox_leaving_camera, compute_bbox_sizes, find_index_of_given_bbox, \
-    find_bigger_bboxes_indices, pair_should_be_filtered_out, aug_bbox_range
+from track_vehicle.utils import pair_should_be_filtered_out, aug_bbox_range
 from yolo_detect.utils import compute_bboxes_centerpoints
 
 __author__ = 'sliu'
@@ -12,8 +11,7 @@ __author__ = 'sliu'
 
 class VehicleTracker:
 
-    def __init__(self, max_frame_storage=100, output_dir='', frame_index=0, min_frames_export=10):
-        self.max_frame_storage = max_frame_storage
+    def __init__(self, output_dir='', frame_index=0, min_frames_export=5):
         self.output_dir = output_dir
         self.frames_history = deque()
         self.tracked_objects = None
@@ -22,6 +20,7 @@ class VehicleTracker:
         self.new_frame_bboxes = None
         self.frame_index = frame_index
         self.min_frames_export = min_frames_export
+        self.number_of_exported_objects = 0
         self.average_moving_speed = 0
 
     def clear_history(self):
@@ -53,7 +52,7 @@ class VehicleTracker:
         self.new_frame_bboxes = new_frame_bboxes
 
         self.frames_history.append(new_frame)
-        if len(self.frames_history) > self.max_frame_storage:
+        if len(self.frames_history) > self.min_frames_export:
             self.frames_history.popleft()
 
     def attribute_new_frame_bboxes_to_tracking_history(self, distance_threshold=100, iou_threshold=0.5):
@@ -92,33 +91,32 @@ class VehicleTracker:
         left_over_bboxes_in_new_frame = [bbox for i, bbox in enumerate(self.new_frame_bboxes)
                                          if i not in used_new_frame_bbox_indices]
 
-        self._discard_lost_tracking_object(tracked_box_indices)
+        self._discard_lost_and_long_tracking_object(tracked_box_indices)
         self._append_new_tracking_object(left_over_bboxes_in_new_frame)
-        self._keep_leaving_camera_objects_only()
-        self._discard_long_tracking_objects()
 
     def export_tracking_objects(self):
-        obj_no = 0
         for object_history in self.popped_out_objects:
             if len(object_history) >= self.min_frames_export:
-                self._crop_and_export_bbox(object_history, obj_no)
-                obj_no += 1
+                self._crop_and_export_bbox(object_history)
 
-    def _discard_lost_tracking_object(self, tracked_box_indices):
+    def _discard_lost_and_long_tracking_object(self, tracked_box_indices):
         popped_out_objects = deque()
         tracked_objects = deque()
 
         for i, object_history in enumerate(self.tracked_objects):
-            if i in tracked_box_indices:
+            if (
+                    i in tracked_box_indices
+                    and self._tracked_object_not_have_enough_history(object_history)
+            ):
                 tracked_objects.append(object_history)
-            else:
+            elif self._is_bbox_leaving_camera(np.array(object_history)):
                 popped_out_objects.append(object_history)
 
         self.popped_out_objects = popped_out_objects
         self.tracked_objects = tracked_objects
 
-    def _crop_and_export_bbox(self, tracking_history, object_number=0, w_aug_factor=0.2, h_aug_factor=0.2):
-        for i, bbox in enumerate(tracking_history[::-1][:self.max_frame_storage]):
+    def _crop_and_export_bbox(self, tracking_history, w_aug_factor=0.2, h_aug_factor=0.2):
+        for i, bbox in enumerate(tracking_history[::-1]):
             corresponding_frame = self.frames_history[-(i+1)]
             image_size = corresponding_frame.size
             corresponding_frame = np.array(corresponding_frame, dtype='float32')
@@ -127,32 +125,29 @@ class VehicleTracker:
                                                                           w_aug_factor,
                                                                           h_aug_factor)
             cropped_img = corresponding_frame[crop_top:crop_bottom, crop_left:crop_right, ]
-            tracking_no = len(tracking_history) - i
-            image_file_name = 'cropped_%d_%d_%d' % (self.frame_index, object_number, tracking_no)
+            frame_num = self.frame_index - i
+            image_file_name = '%d_frame_%d' % (self.number_of_exported_objects, frame_num)
             save_image_to_file(self.output_dir, image_file_name, cropped_img)
+
+        self.number_of_exported_objects += 1
 
     def _append_new_tracking_object(self, new_objects):
         for new_object in new_objects:
             self.tracked_objects.append([new_object])
 
-    def _keep_leaving_camera_objects_only(self):
-        self.tracked_objects = deque(tracking_history for tracking_history in self.tracked_objects
-                                     if (self._tracked_object_not_have_enough_history(tracking_history))
-                                     | (self._is_bbox_leaving_camera(np.array(tracking_history))))
-
-    def _discard_long_tracking_objects(self):
-        self.tracked_objects = deque(tracking_history for tracking_history in self.tracked_objects
-                                     if len(tracking_history) < self.max_frame_storage)
-
     def _tracked_object_not_have_enough_history(self, tracked_bboxes):
         return len(tracked_bboxes) < self.min_frames_export
 
     def _is_bbox_leaving_camera(self, tracked_bboxes):
+        '''
+        :param tracked_bboxes: array
+        :return: boolean
+        '''
         if len(tracked_bboxes) < self.min_frames_export:
             return False
         centerpoints = compute_bboxes_centerpoints(tracked_bboxes)
-        moving_rate = np.mean([centerpoints[i, 1] >= centerpoints[(i+1), 1] for i in np.arange(len(centerpoints) - 1)])
-        leaving = (centerpoints[0, 1] - centerpoints[-1, 1]) > 0 and moving_rate > 0.3
+        moving_direction = np.mean([centerpoints[i, 1] >= centerpoints[(i+1), 1] for i in np.arange(len(centerpoints) - 1)])
+        leaving = (centerpoints[0, 1] - centerpoints[-1, 1]) > 0 and moving_direction > 0.3
         return leaving
 
     def _update_vehicle_average_moving_speed(self):

@@ -8,16 +8,19 @@ from timeit import default_timer as timer
 
 import datetime as dt
 import numpy as np
+import os
+
 from keras import backend as K
 from keras.models import load_model
 from keras.layers import Input
+from keras.utils import multi_gpu_model
+
 from PIL import ImageFont, ImageDraw
 
 from yolo_detect.utils import non_negative_coord_suppress_bboxes, compute_bboxes_centerpoints, log_detection_outputs_to_json
 from models.yolo3_model import yolo_eval, yolo_body, tiny_yolo_body
 from models.utils import letterbox_image
-import os
-from keras.utils import multi_gpu_model
+
 
 class YOLO(object):
     _defaults = {

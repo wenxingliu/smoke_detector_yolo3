@@ -18,8 +18,8 @@ notebooks/
 # data files
 input_data/*
 output_data/*
-model_data/yolov3.weights
-model_data/yolo.h5
+model_data/*.weights
+model_data/*.h5
 
 # archive
 archives/*
