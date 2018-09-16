@@ -1,5 +1,4 @@
 car
-motorbike
 bus
 truck
 pottedplant_truck

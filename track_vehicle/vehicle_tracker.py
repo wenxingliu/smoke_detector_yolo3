@@ -2,7 +2,7 @@ from collections import deque
 import numpy as np
 from scipy.spatial.distance import cdist
 
-from log_utils import save_numpy_file, save_image_to_file
+from log_utils import save_image_to_file
 from track_vehicle.utils import bboxes_pair_should_be_filtered_out, aug_bbox_range
 from yolo_detect.utils import compute_bboxes_centerpoints
 
@@ -11,15 +11,18 @@ __author__ = 'sliu'
 
 class VehicleTracker:
 
-    def __init__(self, output_dir='', frame_index=0, min_frames_export=5):
+    def __init__(self, output_dir='', frame_index=0, min_frames_export=2, interval=3):
         self.output_dir = output_dir
+        self.frame_index = frame_index
+        self.min_frames_export = min_frames_export
+        self.interval = interval
+
         self.frames_history = deque()
         self.tracked_objects = None
         self.popped_out_objects = None
         self.previous_frame_bboxes = None
         self.new_frame_bboxes = None
-        self.frame_index = frame_index
-        self.min_frames_export = min_frames_export
+
         self.number_of_exported_objects = 0
         self.average_moving_speed = 0
 
@@ -41,8 +44,7 @@ class VehicleTracker:
             self.export_tracking_objects()
 
     def initiate_with_first_image(self, new_frame, new_frame_bboxes):
-        box_centerpoints = compute_bboxes_centerpoints(new_frame_bboxes)
-        sorted_indices = np.argsort(box_centerpoints[:, 1])[::-1]
+        sorted_indices = np.argsort(new_frame_bboxes[:, 0])[::-1]
         self.new_frame_bboxes = new_frame_bboxes[sorted_indices]
         self.tracked_objects = deque([bbox] for bbox in new_frame_bboxes)
         self.frames_history.append(new_frame)
@@ -125,7 +127,7 @@ class VehicleTracker:
                                                                           w_aug_factor,
                                                                           h_aug_factor)
             cropped_img = corresponding_frame[crop_top:crop_bottom, crop_left:crop_right, ]
-            frame_num = self.frame_index - i
+            frame_num = self.frame_index - i * self.interval
             image_file_name = '%d_frame_%d' % (self.number_of_exported_objects, frame_num)
             save_image_to_file(self.output_dir, image_file_name, cropped_img)
 
@@ -145,27 +147,8 @@ class VehicleTracker:
         '''
         if len(tracked_bboxes) < self.min_frames_export:
             return False
-        centerpoints = compute_bboxes_centerpoints(tracked_bboxes)
-        moving_direction = np.mean([centerpoints[i, 1] >= centerpoints[(i+1), 1] for i in np.arange(len(centerpoints) - 1)])
-        leaving = (centerpoints[0, 1] - centerpoints[-1, 1]) > 0 and moving_direction > 0.3
-        return leaving
 
-    def _update_vehicle_average_moving_speed(self):
-        if self.frame_index % self.min_frames_export == 0:
-            try:
-                object_speeds = []
-                for object_history in self.tracked_objects:
-                    if len(object_history) >= self.min_frames_export:
-                        centerpoints = compute_bboxes_centerpoints(np.array(object_history))
-                        start_point = centerpoints[0][1]
-                        end_point = centerpoints[-1][1]
-                        object_speed = (start_point - end_point) / len(object_history)
-                        object_speeds.append(object_speed)
-                if object_speeds:
-                    current_average = np.mean(object_speeds)
-                    if self.average_moving_speed == 0:
-                        self.average_moving_speed = current_average
-                    else:
-                        self.average_moving_speed = self.average_moving_speed * 0.5 + current_average * 0.5
-            except:
-                pass
+        leaving = (tracked_bboxes[0, 0] - tracked_bboxes[-1, 0] > 0
+                   and tracked_bboxes[0, 2] - tracked_bboxes[-1, 2] > 0)
+
+        return leaving

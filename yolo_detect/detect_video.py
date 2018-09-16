@@ -7,7 +7,7 @@ import numpy as np
 from PIL import Image
 
 from track_vehicle.vehicle_tracker import VehicleTracker
-from track_vehicle.utils import filter_small_bboxes
+from track_vehicle.bboxes_manager import BboxesManager
 from log_utils import save_numpy_file, save_image_to_file
 
 __author__ = 'sliu'
@@ -57,30 +57,35 @@ def detect_video(yolo, video_path, output_path=""):
     yolo.close_session()
 
 
-def yolo_track_vehicles(yolo, video_path, output_dir, min_frames_export=5):
+def yolo_track_vehicles(yolo, video_path, output_dir, min_frames_export=3, interval=3):
 
-    object_tracker = VehicleTracker(output_dir=output_dir, min_frames_export=min_frames_export)
+    object_tracker = VehicleTracker(output_dir=output_dir, min_frames_export=min_frames_export, interval=interval)
+    bboxes_manager = BboxesManager(interval=interval)
 
     vid = cv2.VideoCapture(video_path)
     curr_fps = 0
     return_value, frame = vid.read()
     while return_value:
         image = Image.fromarray(frame)
-        processed_image, bboxes_info = yolo.detect_image(image, True)
+        new_frame, bboxes_info = yolo.detect_image(image, True)
+        new_bboxes = bboxes_info.get('bboxes', [])
 
-        if len(bboxes_info) > 0:
+        bboxes_manager.add_new_frame_exports(new_bboxes=new_bboxes)
+
+        if bboxes_manager.ready_to_apply_tracking():
             object_tracker.frame_index = curr_fps
-            object_tracker.add_new_frame_to_tracker(new_frame=processed_image,
-                                                    new_frame_bboxes=bboxes_info['bboxes'])
-        else:
+            object_tracker.add_new_frame_to_tracker(new_frame=new_frame,
+                                                    new_frame_bboxes=bboxes_manager.filtered_bboxes)
+        elif bboxes_manager.no_objects_in_recent_history():
             object_tracker.clear_history()
+            bboxes_manager.clear_history()
 
         curr_fps += 1
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
-        del return_value, frame, processed_image, bboxes_info
+        del return_value, frame, new_frame, bboxes_info
         return_value, frame = vid.read()
 
     yolo.close_session()
