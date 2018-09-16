@@ -11,7 +11,7 @@ from yolo_detect.detect_video import detect_video
 __author__ = 'sliu'
 
 if __name__ == '__main__':
-    video_file_name = '4云景ch0_CHANNEL0_20171011_15_45_40'
+    video_file_name = '41琉璃河ch0_CHANNEL0_20180108_11_56_50'
     video_path = 'input_data/videos/' + '%s.avi' % video_file_name
-    out_path = 'output_data/' + '%s_output.avi' % video_file_name
+    out_path = 'output_data/41_boxed/'
     detect_video(YOLO(), video_path, out_path)

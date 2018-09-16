@@ -6,6 +6,8 @@ from timeit import default_timer as timer
 import numpy as np
 from PIL import Image
 
+from track_vehicle.vehicle_tracker import VehicleTracker
+from track_vehicle.utils import filter_small_bboxes
 from log_utils import save_numpy_file, save_image_to_file
 
 __author__ = 'sliu'
@@ -49,12 +51,45 @@ def detect_video(yolo, video_path, output_path=""):
         cv2.imshow("result", result)
         if isOutput:
             out.write(result)
+            save_image_to_file(output_path, '%d_%s' % (curr_fps, str(accum_time)), image)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
     yolo.close_session()
 
 
-def yolo_detect_object_and_export_interim_outputs(yolo, video_path, output_dir):
+def yolo_track_vehicles(yolo, video_path, output_dir, min_frames_export=5):
+
+    object_tracker = VehicleTracker(output_dir=output_dir, min_frames_export=min_frames_export)
+
+    vid = cv2.VideoCapture(video_path)
+    curr_fps = 0
+    return_value, frame = vid.read()
+    while return_value:
+        image = Image.fromarray(frame)
+        processed_image, bboxes_info = yolo.detect_image(image, True)
+
+        if len(bboxes_info) > 0:
+            object_tracker.frame_index = curr_fps
+            object_tracker.add_new_frame_to_tracker(new_frame=processed_image,
+                                                    new_frame_bboxes=bboxes_info['bboxes'])
+        else:
+            object_tracker.clear_history()
+
+        curr_fps += 1
+
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+        del return_value, frame, processed_image, bboxes_info
+        return_value, frame = vid.read()
+
+    yolo.close_session()
+
+
+def yolo_detect_object_and_export_interim_outputs(yolo, video_path, output_dir, min_frames_export=5):
+
+    object_tracker = VehicleTracker(output_dir=output_dir, min_frames_export=min_frames_export)
+
     vid = cv2.VideoCapture(video_path)
 
     yolo_outputs = defaultdict()
@@ -65,11 +100,18 @@ def yolo_detect_object_and_export_interim_outputs(yolo, video_path, output_dir):
     while return_value:
         image = Image.fromarray(frame)
         processed_image, bboxes_info = yolo.detect_image(image, True)
+
         if len(bboxes_info) > 0:
             yolo_outputs[curr_fps] = bboxes_info
             images_dict[curr_fps] = processed_image
             save_image_to_file(output_dir, 'processed_%d' % curr_fps, processed_image)
-            curr_fps += 1
+            object_tracker.frame_index = curr_fps
+            object_tracker.add_new_frame_to_tracker(new_frame=processed_image,
+                                                    new_frame_bboxes=bboxes_info['bboxes'])
+        else:
+            object_tracker.clear_history()
+
+        curr_fps += 1
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
