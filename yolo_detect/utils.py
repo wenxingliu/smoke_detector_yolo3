@@ -4,12 +4,10 @@ import numpy as np
 __author__ = 'sliu'
 
 
-def log_detection_outputs_to_json(bboxes, centerpoints, scores, labels, image_size, vehicle_box_indices):
+def log_detection_outputs_to_json(bboxes, scores, image_size, vehicle_box_indices):
     if (len(bboxes) > 0) and (len(vehicle_box_indices) > 0):
         json_file = {"bboxes": bboxes[vehicle_box_indices],
-                     'centerpoints': centerpoints[vehicle_box_indices],
                      "scores": scores[vehicle_box_indices],
-                     "labels": labels[vehicle_box_indices],
                      "image_size": image_size}
         return json_file
     else:

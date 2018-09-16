@@ -141,7 +141,6 @@ class YOLO(object):
 
         # force negative coords to 0
         out_boxes = non_negative_coord_suppress_bboxes(out_boxes, image.size)
-        box_centerpoints = compute_bboxes_centerpoints(out_boxes)
 
         labels = np.array([self.class_names[c] for c in out_classes])
         selected_indices = np.array([i for i, l in enumerate(labels) if l in self.vehicle_classes_names])
@@ -150,9 +149,7 @@ class YOLO(object):
             print('Found {} vehicle boxes for {}'.format(len(selected_indices), 'img'))
 
         if return_intermediate_outputs:
-            outputs_json = log_detection_outputs_to_json(out_boxes, box_centerpoints,
-                                                         out_scores, labels, image.size,
-                                                         selected_indices)
+            outputs_json = log_detection_outputs_to_json(out_boxes, out_scores, image.size, selected_indices)
             return image, outputs_json
 
         font = ImageFont.truetype(font='font/FiraMono-Medium.otf',

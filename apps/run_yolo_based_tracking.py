@@ -42,8 +42,8 @@ def track_and_export_bboxes_in_all_videos_in_dir(videos_dir, root_out_dir, overw
 
 
 if __name__ == '__main__':
-    video_path = 'C://dev//smoke_detector_yolo3//input_data//videos//60张坊进京ch0_2018_01_24_14_48_00.avi'
-    output_dir = 'C://dev//smoke_detector_yolo3//output_data//60//'
+    video_path = 'C://dev//smoke_detector_yolo3//input_data//videos//182房山良乡ch0_CHANNEL0_20180403_11_04_13.avi'
+    output_dir = 'C://dev//smoke_detector_yolo3//output_data//182//'
     yolo = YOLO()
-    yolo_track_vehicles(yolo, video_path, output_dir, 5)
+    yolo_track_vehicles(yolo, video_path, output_dir, min_frames_export=3, interval=3)
     yolo.close_session()
