@@ -15,7 +15,6 @@ from yolo_detect.detect_video import yolo_track_vehicles
 __author__ = 'sliu'
 
 
-
 def track_and_export_bboxes_in_all_videos_in_dir(videos_dir, root_out_dir, overwrite=False):
 
     video_files = [f for f in os.listdir(videos_dir)
