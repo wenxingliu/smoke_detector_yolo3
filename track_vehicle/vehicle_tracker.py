@@ -3,7 +3,7 @@ import numpy as np
 from scipy.spatial.distance import cdist
 
 from log_utils import save_numpy_file, save_image_to_file
-from track_vehicle.utils import pair_should_be_filtered_out, aug_bbox_range
+from track_vehicle.utils import bboxes_pair_should_be_filtered_out, aug_bbox_range
 from yolo_detect.utils import compute_bboxes_centerpoints
 
 __author__ = 'sliu'
@@ -81,10 +81,10 @@ class VehicleTracker:
             bbox_0 = self.previous_frame_bboxes[i]
             bbox_1 = self.new_frame_bboxes[mapped_index]
 
-            if not pair_should_be_filtered_out(bbox_0=bbox_0, bbox_1=bbox_1,
-                                               center_0=center_0, center_1=center_1,
-                                               distance_threshold=distance_threshold,
-                                               iou_threshold=iou_threshold):
+            if not bboxes_pair_should_be_filtered_out(bbox_0=bbox_0, bbox_1=bbox_1,
+                                                      center_0=center_0, center_1=center_1,
+                                                      distance_threshold=distance_threshold,
+                                                      iou_threshold=iou_threshold):
                 self.tracked_objects[i].append(bbox_1)
                 tracked_box_indices.add(i)
 
