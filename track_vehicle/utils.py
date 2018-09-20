@@ -16,6 +16,11 @@ def filter_small_bboxes(image_size, bboxes, ratio_threshold):
     filtered_bboxes = bboxes[ratios >= ratio_threshold]
     return filtered_bboxes
 
+def filter_imbalanced_bboxes(bboxes,ratio_w_and_h):
+    bbox_height, bbox_weight = bboxes[:, 2] - bboxes[:, 0], bboxes[:, 3] - bboxes[:, 1]
+    ratios = np.min((bbox_height / bbox_weight, bbox_weight / bbox_height), axis=0)
+    filtered_bboxes = bboxes[ratios >= ratio_w_and_h]
+    return filtered_bboxes
 
 def bboxes_pair_should_be_filtered_out(bbox_0, bbox_1, center_0, center_1, distance_threshold, iou_threshold):
     # IOU too small
@@ -51,7 +56,7 @@ def aug_bbox_range(bbox, image_size, w_aug_factor, h_aug_factor):
     # crop_top = np.max([0, top - h*h_aug_factor]).astype(int)
     crop_top = np.max([0, top]).astype(int)
     # crop_left = np.max([0, left - w*w_aug_factor]).astype(int)
-    crop_left = np.max([0, left]).astype(int)
+    crop_left = np.max([0, left - w*w_aug_factor]).astype(int)
     crop_bottom = np.min([image_size[1], bottom + h*h_aug_factor]).astype(int)
     crop_right = np.min([image_size[0], right + w*w_aug_factor]).astype(int)
     return crop_top, crop_left, crop_bottom, crop_right

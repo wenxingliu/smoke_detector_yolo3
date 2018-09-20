@@ -11,7 +11,7 @@ __author__ = 'sliu'
 
 class VehicleTracker:
 
-    def __init__(self, output_dir='', frame_index=0, min_frames_export=2, interval=3):
+    def __init__(self, output_dir='', frame_index=0, min_frames_export=3, interval=3):
         self.output_dir = output_dir
         self.frame_index = frame_index
         self.min_frames_export = min_frames_export
@@ -126,7 +126,7 @@ class VehicleTracker:
                                                                           image_size,
                                                                           w_aug_factor,
                                                                           h_aug_factor)
-            cropped_img = corresponding_frame[crop_top:crop_bottom, crop_left:crop_right, ]
+            cropped_img = corresponding_frame[crop_top:crop_bottom, crop_left:crop_right,]
             frame_num = self.frame_index - i * self.interval
             image_file_name = '%d_frame_%d' % (self.number_of_exported_objects, frame_num)
             save_image_to_file(self.output_dir, image_file_name, cropped_img)
