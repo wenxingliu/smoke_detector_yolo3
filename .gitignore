@@ -20,6 +20,7 @@ input_data/*
 output_data/*
 model_data/*.weights
 model_data/*.h5
+model_data/*.npy
 
 # archive
 archives/*
