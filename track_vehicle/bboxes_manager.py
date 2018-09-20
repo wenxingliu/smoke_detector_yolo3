@@ -6,7 +6,7 @@ __author__ = 'sliu'
 
 class BboxesManager:
 
-    def __init__(self, interval, iou_threshold=0.8, bbox_size_threshold=0.01,ratio_w_and_h = 0.45):
+    def __init__(self, interval, iou_threshold=0.8, bbox_size_threshold=0.01,ratio_w_and_h=0.45):
         self.interval = interval
         self.iou_threshold = iou_threshold
         self.bbox_size_threshold = bbox_size_threshold
