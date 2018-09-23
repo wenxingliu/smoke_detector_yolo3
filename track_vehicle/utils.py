@@ -61,6 +61,7 @@ def aug_bbox_range(bbox, image_size, w_aug_factor, h_aug_factor):
     crop_right = np.min([image_size[0], right + w*w_aug_factor]).astype(int)
     return crop_top, crop_left, crop_bottom, crop_right
 
+
 def mask_vehicle_bbox_in_original_frame(bbox, frame):
     top, left, bottom, right = bbox.astype(int)
     bottom = (bottom - (bottom - top) * 0.2).astype(int)

@@ -117,7 +117,7 @@ class VehicleTracker:
         self.popped_out_objects = popped_out_objects
         self.tracked_objects = tracked_objects
 
-    def _crop_and_export_bbox(self, tracking_history, w_aug_factor=0.2, h_aug_factor=0.2, mask_vehicle=True):
+    def _crop_and_export_bbox(self, tracking_history, w_aug_factor=0.2, h_aug_factor=1.0, mask_vehicle=False):
         for i, bbox in enumerate(tracking_history[::-1]):
             corresponding_frame = self.frames_history[-(i+1)]
             image_size = corresponding_frame.size
