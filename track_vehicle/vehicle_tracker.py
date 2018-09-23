@@ -3,7 +3,7 @@ import numpy as np
 from scipy.spatial.distance import cdist
 
 from log_utils import save_image_to_file
-from track_vehicle.utils import bboxes_pair_should_be_filtered_out, aug_bbox_range
+from track_vehicle.utils import bboxes_pair_should_be_filtered_out, aug_bbox_range, mask_vehicle_bbox_in_original_frame
 from yolo_detect.utils import compute_bboxes_centerpoints
 
 __author__ = 'sliu'
@@ -117,7 +117,7 @@ class VehicleTracker:
         self.popped_out_objects = popped_out_objects
         self.tracked_objects = tracked_objects
 
-    def _crop_and_export_bbox(self, tracking_history, w_aug_factor=0.2, h_aug_factor=0.2):
+    def _crop_and_export_bbox(self, tracking_history, w_aug_factor=0.2, h_aug_factor=0.2, mask_vehicle=True):
         for i, bbox in enumerate(tracking_history[::-1]):
             corresponding_frame = self.frames_history[-(i+1)]
             image_size = corresponding_frame.size
@@ -126,7 +126,13 @@ class VehicleTracker:
                                                                           image_size,
                                                                           w_aug_factor,
                                                                           h_aug_factor)
-            cropped_img = corresponding_frame[crop_top:crop_bottom, crop_left:crop_right,]
+            # mask original bbox
+            if mask_vehicle:
+                post_processed_frame = mask_vehicle_bbox_in_original_frame(bbox, corresponding_frame)
+            else:
+                post_processed_frame = corresponding_frame
+
+            cropped_img = post_processed_frame[crop_top:crop_bottom, crop_left:crop_right, ]
             frame_num = self.frame_index - i * self.interval
             image_file_name = '%d_frame_%d' % (self.number_of_exported_objects, frame_num)
             save_image_to_file(self.output_dir, image_file_name, cropped_img)
