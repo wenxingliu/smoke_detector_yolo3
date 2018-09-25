@@ -1,0 +1,30 @@
+import os
+import cv2 as cv
+path = 'C:\\Users\\Andy\\试验文件夹\\6'
+path1 = os.path.expanduser(path)
+path2 = os.listdir(path)
+videodict1 = {}
+for i,e in enumerate(path2):
+    dict1 = {i+1:e}
+    videodict1.update(dict1)
+print(videodict1)
+for i in videodict1:
+    print('正在读取第'+str(i)+'张图片')
+    if i%3 == 0:
+        x1 = i//3
+        dir1 = os.mkdir('./video_classify'+'/'+str(x1))
+        src1 = cv.imread('./6/'+videodict1[i-2])
+        src2 = cv.imread('./6/'+videodict1[i-1])
+        src3 = cv.imread('./6/'+videodict1[i])
+        cv.imshow('A',src1)
+        cv.imshow('B',src2)
+        cv.imshow('C',src3)
+        cv.imwrite('./video_classify'+'/'+str(x1)+'/'+str(i-2)+'.jpg',src1)
+        cv.imwrite('./video_classify'+'/'+str(x1)+'/'+str(i-1)+'.jpg',src2)
+        cv.imwrite('./video_classify'+'/'+str(x1)+'/'+str(i)+'.jpg',src3)
+        cv.waitKey(0)
+        cv.destroyAllWindows()
+        x = input('请输入你的判断 Y/N/qt')
+        os.rename('./video_classify'+'/'+str(x1),'./video_classify'+'/'+str(x)+str(i))
+    else:
+        continue
