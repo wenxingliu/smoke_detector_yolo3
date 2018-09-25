@@ -6,7 +6,7 @@ __author__ = 'sliu'
 
 class BboxesManager:
 
-    def __init__(self, interval, iou_threshold=0.8, bbox_size_threshold=0.01,ratio_w_and_h=0.45):
+    def __init__(self, interval, iou_threshold=0.8, bbox_size_threshold=0.01, ratio_w_and_h=0.2):
         self.interval = interval
         self.iou_threshold = iou_threshold
         self.bbox_size_threshold = bbox_size_threshold
@@ -25,7 +25,7 @@ class BboxesManager:
             self.clear_history()
 
         filtered_small_bboxes = self._filter_out_small_bboxes(new_bboxes, image_size)
-        filtered_new_bboxes = self._filter_out_imbalanced_bboxes(image_size,filtered_small_bboxes)
+        filtered_new_bboxes = self._filter_out_imbalanced_bboxes(image_size, filtered_small_bboxes)
         self.new_bboxes = self._dedupe_overlapping_bboxes_in_new_bboxes(filtered_new_bboxes)
 
         if self.frames_count == 0:
@@ -99,7 +99,7 @@ class BboxesManager:
         else:
             return new_bboxes
 
-    def _filter_out_imbalanced_bboxes(self,image_size,bboxes):
+    def _filter_out_imbalanced_bboxes(self, image_size, bboxes):
         if image_size:
             filtered_bboxes = filter_imbalanced_bboxes(bboxes, ratio_w_and_h=self.ratio_w_and_h)
             return filtered_bboxes

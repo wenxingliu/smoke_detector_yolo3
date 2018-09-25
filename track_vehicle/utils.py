@@ -51,7 +51,7 @@ def bboxes_intersection_over_union(bbox_0, bbox_1):
 
 
 def aug_bbox_range(bbox, image_size, w_aug_factor, h_aug_factor):
-    top, left, bottom, right = bbox
+    top, left, bottom, right = bbox.astype(int)
     h, w = (bottom - top), (right - left)
     # crop_top = np.max([0, top - h*h_aug_factor]).astype(int)
     crop_top = np.max([0, top]).astype(int)
@@ -60,3 +60,10 @@ def aug_bbox_range(bbox, image_size, w_aug_factor, h_aug_factor):
     crop_bottom = np.min([image_size[1], bottom + h*h_aug_factor]).astype(int)
     crop_right = np.min([image_size[0], right + w*w_aug_factor]).astype(int)
     return crop_top, crop_left, crop_bottom, crop_right
+
+
+def mask_vehicle_bbox_in_original_frame(bbox, frame):
+    top, left, bottom, right = bbox.astype(int)
+    bottom = (bottom - (bottom - top) * 0.2).astype(int)
+    frame[top:bottom, left:right, :] = 0
+    return frame
