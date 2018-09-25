@@ -1,0 +1,53 @@
+from keras.applications.vgg19 import VGG19
+from keras.models import Model
+from keras.optimizers import SGD
+from keras.layers import Dense, Input, Conv2D, Concatenate, MaxPooling2D
+import numpy as np
+from data_preprocess import  acquire_three_data_and_label_from_image
+
+
+nosmoke_path = './data/train_data/No_smoke/'
+smoke_path = './data/train_data/Smoke/'
+nosmoke_train_data, nosmoke_label = acquire_three_data_and_label_from_image(nosmoke_path)
+smoke_train_data, smoke_label = acquire_three_data_and_label_from_image(smoke_path)
+
+data = np.concatenate((nosmoke_train_data, smoke_train_data), axis=0)
+label = np.concatenate((nosmoke_label, smoke_label), axis=0)
+
+vgg19 = VGG19(weights='imagenet')
+base_model = Model(inputs=vgg19.input, outputs=vgg19.get_layer('block5_pool').output)
+
+def model(base_model):
+    input_fig1 = Input(shape=(224, 224, 3), name='input_fig1')
+    input_fig2 = Input(shape=(224, 224, 3), name='input_fig2')
+    input_fig3 = Input(shape=(224, 224, 3), name='input_fig3')
+
+    feature1 = base_model.predict(input_fig1)
+    feature2 = base_model.predict(input_fig2)
+    feature3 = base_model.predict(input_fig3)
+
+    conv1 = Conv2D(512, [3, 3], activation='relu', strides=2)(feature1)
+    conv2 = Conv2D(512, [3, 3], activation='relu', strides=2)(feature2)
+    conv3 = Conv2D(512, [3, 3], activation='relu', strides=2)(feature3)
+    dense1 = Dense(1024, activation='relu')(conv1)
+    dense2 = Dense(1024, activation='relu')(conv2)
+    dense3 = Dense(1024, activation='relu')(conv3)
+    concat = Concatenate(axis=-1)([dense1, dense2, dense3 ])
+
+    fc1 = Dense(512, activation='relu')(concat)
+    pred = Dense(2, activation='sigmoid')(fc1)
+
+    model = Model(inputs=[input_fig1, input_fig2, input_fig3], outputs=pred)
+
+    return model
+
+model = model(base_model)
+
+for layer in model.layers[:19]:
+    layer.trainable = False
+for layer in model.layers[19:]:
+    layer.trainable = True
+
+model.compile(optimizer=SGD(lr=0.000001, momentum=0.9), loss='categorical_crossentropy', metrics=['acc'])
+# train the model on the new data for a few epochs
+model.fit(x=data, y=label, epochs=5, validation_split=0.2, shuffle=True, batch_size=32)
