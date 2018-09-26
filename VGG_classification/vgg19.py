@@ -251,9 +251,9 @@ def train(num_epochs):
             # loss_step.append(loss_)
             # acc.append(accuracy_)
             # if i % 5 == 0:
-        print('epochs: %d' % i)
-        print('**************loss: %.2f' % loss_)
-        print('**************acc: %.2f' % accuracy_)
+            print('epochs: %d' % i)
+            print('**************loss: %.2f' % loss_)
+            print('**************acc: %.2f' % accuracy_)
 
 
 train(num_epochs=200)
