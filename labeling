@@ -1,0 +1,71 @@
+import os
+import cv2
+
+
+def from_keyboard(x):
+    if x == 'y':
+        return 'smoke'
+    elif x == 'n':
+        return 'no_smoke'
+    else:
+        return 'unknown'
+
+
+# 单路径
+def labeling(image_path):
+    image_list = os.listdir(image_path)
+    if image_path.endswith('\\'):
+        image_path = image_path[:-1]
+    s = os.path.split(image_path)
+    image_parent_path = s[0]
+    labeled_path = image_parent_path + '\\data\\'
+    
+    for i in range(len(image_list)):
+        print('正在读取第' + str(i) + '张图片')
+        if i == 0:
+            if not os.path.exists(labeled_path + 'smoke'):
+                os.makedirs(labeled_path + 'smoke')
+            if not os.path.exists(labeled_path + 'no_smoke'):
+                os.makedirs(labeled_path + 'no_smoke')
+            if not os.path.exists(labeled_path + 'unknown'):
+                os.makedirs(labeled_path + 'unknown')
+        if i % 3 == 2:
+            img0 = cv2.imread(image_path + '\\' + image_list[i - 2])
+            img1 = cv2.imread(image_path + '\\' + image_list[i - 1])
+            img2 = cv2.imread(image_path + '\\' + image_list[i])
+            cv2.imshow('A', img0)
+            cv2.imshow('B', img1)
+            cv2.imshow('C', img2)
+            cv2.waitKey(30)
+            x = input('请输入你的判断 Y/N/dn')
+    
+            label = from_keyboard(x)
+            cv2.imwrite(labeled_path + label + '\\' + s[1] + '_' + image_list[i - 2], img0)
+            cv2.imwrite(labeled_path + label + '\\' + s[1] + '_' + image_list[i - 1], img1)
+            cv2.imwrite(labeled_path + label + '\\' + s[1] + '_' + image_list[i], img2)
+    
+            cv2.destroyAllWindows()
+    
+        else:
+            continue
+
+    
+# 多路径
+def labeling_image_dir(all_image_path):
+    for image_path in os.listdir(all_image_path):
+        labeling(all_image_path+image_path)
+
+
+# image_path = 'D:\\project2\\label\\57\\'
+# labeling(image_path)
+
+all_image_path='D:\\project2\\label\\'
+labeling_image_dir(all_image_path)
+
+
+
+
+
+
+
+
