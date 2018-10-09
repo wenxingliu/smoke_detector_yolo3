@@ -221,7 +221,7 @@ def train(num_epochs):
     cnn = CNN(learning_rate=0.00001, batch_size=32)
 
     # get the data stream
-    img1, img2, img3, label = read_and_decode(data_path + "train.tfrecords")
+    img1, img2, img3, label = read_and_decode(train_data_path + "train.tfrecords")
     img1_batch, img2_batch, img3_batch, label_batch = get_batch(img1, img2, img3, label, batch_size=cnn.batch_size)
     #inference
     x1, x2, x3, y = cnn.input_placeholder()
@@ -231,15 +231,29 @@ def train(num_epochs):
     correct_prediction = tf.equal(tf.cast(tf.argmax(pred, 1), tf.int64), tf.argmax(y, 1))
     accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
+    # get the test data stream
+    test_img1, test_img2, test_img3, test_label = read_and_decode(test_data_path + "train.tfrecords")
+    test_img1_batch, test_img2_batch, test_img3_batch, test_label_batch = get_batch(test_img1, test_img2,
+                                                                                    test_img3, test_label,
+                                                                                    batch_size=cnn.batch_size)
+    # test data inference
+    t1, t2, t3, ty = cnn.input_placeholder()
+    test_pred = cnn.inference(vgg19, t1, t2, t3)
+    test_loss = cnn.compute_loss(test_pred, ty)
+    test_correct_prediction = tf.equal(tf.cast(tf.argmax(test_pred, 1), tf.int64), tf.argmax(ty, 1))
+    test_accuracy = tf.reduce_mean(tf.cast(test_correct_prediction, tf.float32))
+
     init = tf.global_variables_initializer()
     loss_step = []
     acc = []
+    saver = tf.train.Saver()
     with tf.Session() as sess:
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=sess, coord=coord)
         sess.run(init)
+        print('training begin!')
         for i in range(num_epochs):
-            print('training begin!')
+            # on train datasets
             image1, image2, image3, labels = sess.run([img1_batch, img2_batch, img3_batch, label_batch])
             feed = {x1: image1, x2: image2, x3: image3, y: labels}
             loss_, _, accuracy_ = sess.run([loss, train_step, accuracy], feed_dict=feed)
@@ -248,18 +262,31 @@ def train(num_epochs):
             if i % 5 == 0:
                 print('epochs: %d' % i)
                 print('**************loss: %.2f' % loss_)
-                print('**************acc: %.2f' % accuracy_)
+                print('**************train acc: %.2f' % accuracy_)
 
-    coord.request_stop()
-    coord.join(threads)
+            if i % 20 == 0:
+                # on test datasets
+                test_image1, test_image2, test_image3, test_labels = sess.run([test_img1_batch, test_img2_batch,
+                                                                               test_img3_batch, test_label_batch])
+                test_feed = {t1: test_image1, t2: test_image2, t3: test_image3, ty: test_labels}
+                test_loss_, test_accuracy_ = sess.run([test_loss, test_accuracy], feed_dict=test_feed)
+                print('**************test  acc: %.2f' % test_accuracy_)
+
+            if i > 50:
+                saver.save(sess, 'model/model', global_step=i)
+
+        coord.request_stop()
+        coord.join(threads)
 
 
 # make the tfrecords file
-data_path = 'C:\\Users\\昊天维业PC\\Desktop\\tf_cls\\data\\train_data\\'
+train_data_path = 'C:\\Users\\昊天维业PC\\Desktop\\tf_cls\\data\\train_data\\'
+test_data_path = 'C:\\Users\\昊天维业PC\\Desktop\\tf_cls\\data\\test_data\\'
 classes = ('smoke', 'No_smoke')
-if not os.path.exists(data_path + "train.tfrecords"):
-    make_tfrecords(data_path, classes)
+if not os.path.exists(train_data_path + "train.tfrecords"):
+    make_tfrecords(train_data_path, classes)
+if not os.path.exists(test_data_path + "train.tfrecords"):
+    make_tfrecords(test_data_path, classes)
 
-train(num_epochs=200)
-
+train(num_epochs=1000)
 
