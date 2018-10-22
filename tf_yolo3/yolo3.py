@@ -1,7 +1,7 @@
 import os
 from PIL import Image
-from model.yolo3_model_tf import *
-from model.utils import letterbox_image
+from tf_yolov3.yolo3_model_tf import *
+from tf_yolov3.utils import letterbox_image
 
 
 class YOLO(object):
