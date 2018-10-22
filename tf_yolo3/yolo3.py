@@ -1,13 +1,7 @@
-import tensorflow as tf
 import os
-import numpy as np
-import colorsys
-from PIL import ImageFont, ImageDraw
-# path = os.path.abspath(__file__)
-# parent_path = os.path.split(path)[0]
-# os.chdir(parent_path + "\\")
-from tf_yolov3.yolo3_model_tf import *
-from tf_yolov3.utils import letterbox_image
+from PIL import Image
+from model.yolo3_model_tf import *
+from model.utils import letterbox_image
 
 
 class YOLO(object):
@@ -54,29 +48,28 @@ class YOLO(object):
         x, y1 = make_lastlayer(x1, 512, num_anchors * (num_classes + 5))
 
         x = conv2d(x, 256, (1, 1), strides=[1, 1])
-        x = upsample2d(x)
-        x = tf.concat([x, x1])
+        x = upsample2d(x, 2, 2)
+        x = tf.concat([x, x2], -1)
         x, y2 = make_lastlayer(x, 256, num_anchors * (num_classes + 5))
 
         x = conv2d(x, 128, (1, 1), strides=[1, 1])
-        x = upsample2d(x)
-        x = tf.concat([x, x2])
+        x = upsample2d(x, 2, 2)
+        x = tf.concat([x, x3], -1)
         x, y3 = make_lastlayer(x, 128, num_anchors * (num_classes + 5))
 
-        yolo_outputs = [y1, y2, y3]
-        return yolo_outputs
+        return [y1, y2, y3]
 
     def yolo_evaluate(self, yolo_outputs, anchors, num_classes,
                       image_shape, max_boxes=20, score_threshold=0.6, iou_threshold=0.4):
         num_layers = len(yolo_outputs)
         anchors_mask = [[6, 7, 8], [3, 4, 5], [0, 1, 2]]
-        input_shape = tf.shape(yolo_outputs[1:3]) * 32
+        input_shape = tf.shape(yolo_outputs[0])[1:3] * 32
         boxes = []
         box_scores = []
         # three feature map of different scale to detect
         for i in range(num_layers):
-            anchors = anchors[anchors_mask[i]]
-            _box, _box_score = yolo_boxes_and_scores(yolo_outputs[i], anchors, num_classes, input_shape, image_shape)
+            anchor = anchors[anchors_mask[i]]
+            _box, _box_score = yolo_boxes_and_scores(yolo_outputs[i], anchor, num_classes, input_shape, image_shape)
             boxes.append(_box)
             box_scores.append(_box_score)
         boxes = tf.concat(boxes, axis=0)  # shape:[n, 4]
@@ -113,8 +106,8 @@ class YOLO(object):
 
     def make_input_placeholders(self):
         # define input placeholder
-        inputs_data = tf.placeholder([self.test_batch, 416, 416, 3])
-        inputs_image_size = tf.placeholder([2, ])
+        inputs_data = tf.placeholder(tf.float32, [self.test_batch, 416, 416, 3])
+        inputs_image_size = tf.placeholder(tf.int8, [2, ])
         return inputs_data, inputs_image_size
 
     def detect_image(self, image):
@@ -126,10 +119,21 @@ class YOLO(object):
 
         inputs_data, inputs_image_size = self.make_input_placeholders()
         boxes_, scores_, classes_ = self.yolo_model(inputs_data, inputs_image_size)
+        self.sess.run(tf.global_variables_initializer())
         out_boxes, out_scores, out_classes = \
             self.sess.run([boxes_, scores_, classes_],
                           feed_dict={inputs_data: image_data, inputs_image_size: image_size})
+        self.close_setion()
         return out_boxes, out_scores, out_classes
+
+    def close_setion(self):
+        self.sess.close()
+
+
+yolo3 = YOLO()
+image = Image.open('2.png')
+
+out_boxes, out_scores, out_classes = yolo3.detect_image(image)
 
 
 
