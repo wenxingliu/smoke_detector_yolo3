@@ -3,7 +3,7 @@ import numpy as np
 
 
 def conv2d(inputs, filters, ksize, strides=[1, 1]):
-    conv = tf.layers.conv2d(inputs, filters, ksize, strides, padding="valid" if strides == [2, 2] else "same")
+    conv = tf.layers.conv2d(inputs, filters, ksize, strides, padding="SAME")
     bn = tf.layers.batch_normalization(conv)
     layer = tf.nn.leaky_relu(bn, alpha=0.01)
     return layer
@@ -109,23 +109,24 @@ def darknet52(inputs):
     layer44 = conv2d(resblock19, 1024, (3, 3), strides=[2, 2])
 
     # resblock5 *4
-    layer45 = conv2d(layer27, 512, (1, 1), strides=[1, 1])
-    layer46 = conv2d(layer28, 1024, (3, 3), strides=[1, 1])
+    layer45 = conv2d(layer44, 512, (1, 1), strides=[1, 1])
+    layer46 = conv2d(layer45, 1024, (3, 3), strides=[1, 1])
     resblock20 = Res_block(layer46, layer44)
 
-    layer47 = conv2d(resblock20, 128, (1, 1), strides=[1, 1])
-    layer48 = conv2d(layer47, 256, (3, 3), strides=[1, 1])
+    layer47 = conv2d(resblock20, 512, (1, 1), strides=[1, 1])
+    layer48 = conv2d(layer47, 1024, (3, 3), strides=[1, 1])
     resblock21 = Res_block(layer48, resblock20)
 
-    layer49 = conv2d(resblock21, 128, (1, 1), strides=[1, 1])
-    layer50 = conv2d(layer49, 256, (3, 3), strides=[1, 1])
+    layer49 = conv2d(resblock21, 512, (1, 1), strides=[1, 1])
+    layer50 = conv2d(layer49, 1024, (3, 3), strides=[1, 1])
     resblock22 = Res_block(layer50, resblock21)
 
-    layer51 = conv2d(resblock22, 128, (1, 1), strides=[1, 1])
-    layer52 = conv2d(layer51, 256, (3, 3), strides=[1, 1])
+    layer51 = conv2d(resblock22, 512, (1, 1), strides=[1, 1])
+    layer52 = conv2d(layer51, 1024, (3, 3), strides=[1, 1])
     resblock23 = Res_block(layer52, resblock22)         # (13,13)
 
-    return resblock11, resblock19, resblock23
+    # return resblock11, resblock19, resblock23
+    return resblock23, resblock19, resblock11
 
 
 def make_lastlayer(inputs, filters, out_filters):
@@ -147,8 +148,8 @@ def upsample2d(inputs, height_factor, width_factor):
     original_shape = tf.shape(inputs)[1:3]
     new_shape = original_shape * tf.constant(np.array([height_factor, width_factor]).astype('int32'))
     x = tf.image.resize_nearest_neighbor(inputs, new_shape)
-    x.set_shape((None, original_shape[1] * height_factor if original_shape[1] is not None else None,
-                 original_shape[2] * width_factor if original_shape[2] is not None else None, None))
+    # x.set_shape((None, original_shape[1] * height_factor if original_shape[1] is not None else None,
+    #              original_shape[2] * width_factor if original_shape[2] is not None else None, None))
     return x
 
 
@@ -173,11 +174,12 @@ def yolo_body(inputs, num_anchors, num_classes):
 def yolo_head(final_layer, anchors, num_classes, input_shape, calculate_loss=True):
 
     num_anchors = len(anchors)
-    anchors_tensor = tf.reshape(tf.constant(anchors, shape=[1, 1, 1, num_anchors, 2]))
+    anchors_tensor = tf.cast(tf.reshape(tf.constant(anchors), shape=[1, 1, 1, num_anchors, 2]), tf.float32)
+
     grid_shape = tf.shape(final_layer)[1:3]
     grid_y = tf.tile(tf.reshape(tf.range(0, grid_shape[0]), [-1, 1, 1, 1]), [1, grid_shape[0], 1, 1])
     grid_x = tf.tile(tf.reshape(tf.range(0, grid_shape[1]), [1, -1, 1, 1]), [grid_shape[1], 1, 1, 1])
-    grid = tf.concat([grid_x, grid_y])
+    grid = tf.concat([grid_x, grid_y], -1)
     grid = tf.cast(grid, dtype=final_layer.dtype.base_dtype.name)
 
     feats = tf.reshape(final_layer, [-1, grid_shape[0], grid_shape[1], num_anchors, num_classes + 5])
@@ -208,7 +210,7 @@ def yolo_correctboxes(box_xy, box_wh, input_shape, image_shape):
     # box_min, box_max is the four corners' coordinates in the raw image(raw image size=new_shape)
     box_min = box_yx - (box_hw/2.0)
     box_max = box_yx + (box_hw/2.0)
-    boxes = tf.concat([box_min[..., 0], box_min[..., 1], box_max[..., 0], box_max[..., 1]], axis=-1)
+    boxes = tf.concat([box_min[..., 0:1], box_min[..., 1:2], box_max[..., 0:1], box_max[..., 1:2]], axis=-1)
     boxes = boxes * tf.concat([image_shape, image_shape], axis=-1)
 
     return boxes
