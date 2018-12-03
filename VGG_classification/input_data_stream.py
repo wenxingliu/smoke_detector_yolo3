@@ -4,6 +4,8 @@ import os
 from glob import glob
 import tensorflow as tf
 
+__author__ = 'WangZe'
+
 
 def get_image_array(file_name):
     file_path = os.path.abspath(file_name)
