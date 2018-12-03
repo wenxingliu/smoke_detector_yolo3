@@ -5,6 +5,7 @@ from keras.layers import Dense, Input, Conv2D, Concatenate, MaxPooling2D
 import numpy as np
 from data_preprocess import  acquire_three_data_and_label_from_image
 
+__author__ = WangZe'
 
 nosmoke_path = './data/train_data/No_smoke/'
 smoke_path = './data/train_data/Smoke/'
