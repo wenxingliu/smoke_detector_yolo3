@@ -4,6 +4,8 @@ import os
 import cv2
 from glob import glob
 
+__author__ = 'WangZe'
+
 def get_image_array(file_name):
     file_path = os.path.abspath(file_name)
     image = Image.open(file_path)
