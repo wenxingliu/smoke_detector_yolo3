@@ -8,6 +8,8 @@ from data_preprocess import *
 from sklearn.utils import shuffle
 from input_data_stream import *
 
+__author__ = 'WangZe'
+
 VGG_MEAN = [103.939, 116.779, 123.68]
 
 
